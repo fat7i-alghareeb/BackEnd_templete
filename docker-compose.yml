@@ -1,0 +1,68 @@
+services:
+  taxi.api:
+    build:
+      context: .
+      dockerfile: src/Taxi.Api/Dockerfile
+      target: final
+    ports:
+      - "5001:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=TaxiDb;Username=postgres;Password=YourStrong@Password1
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://seq:5341/ingest/otlp/v1/traces
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    depends_on:
+      - postgres
+      - seq
+    restart: on-failure
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: YourStrong@Password1
+      POSTGRES_DB: TaxiDb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: always
+
+  seq:
+    image: datalust/seq:latest
+    volumes:
+      - ./containers/seq:/data
+    environment:
+      ACCEPT_EULA: Y
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
+    ports:
+      - "5341:5341"
+      - "8081:80"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./containers/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - taxi.api
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: YourStrongPwd
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  grafana-data:

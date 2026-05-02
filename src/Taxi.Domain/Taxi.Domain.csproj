@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="MediatR" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Taxi.Contracts\Taxi.Contracts.csproj" />
+	</ItemGroup>
+</Project>

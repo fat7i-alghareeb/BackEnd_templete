@@ -1,0 +1,19 @@
+@baseUrl = https://localhost:7007/api
+
+### Login As Admin
+POST {{baseUrl}}/token/generate
+Content-Type: application/json
+
+{
+    "email": "admin@localhost",
+    "password": "Admin123!"
+}
+
+### Refresh Token
+POST {{baseUrl}}/token/refresh-token
+Content-Type: application/json
+
+{
+    "ExpiredAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "..."
+}

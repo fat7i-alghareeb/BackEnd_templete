@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <ItemGroup>
+        <PackageReference Include="Asp.Versioning.Mvc" />
+        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+        <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+        <PackageReference Include="Swashbuckle.AspNetCore" />
+        <PackageReference Include="Scalar.AspNetCore" />
+        <PackageReference Include="My.Extensions.Localization.Json" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Taxi.Client\Taxi.Client.csproj" />
+        <ProjectReference Include="..\Taxi.Application\Taxi.Application.csproj" />
+        <ProjectReference Include="..\Taxi.Contracts\Taxi.Contracts.csproj" />
+        <ProjectReference Include="..\Taxi.Infrastructure\Taxi.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Update="Resources\SharedResource.en.json" CopyToOutputDirectory="PreserveNewest" />
+        <Content Update="Resources\SharedResource.ar.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>

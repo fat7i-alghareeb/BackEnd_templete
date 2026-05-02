@@ -1,0 +1,132 @@
+@baseUrl = https://localhost:7007/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzM2ZmNzc0YS1hOWE4LTQ0MjctOGY5ZC00MDAxNDk0OTVhNGEiLCJlbWFpbCI6ImFkbWluQHRheGkuY29tIiwicm9sZSI6Ik1hbmFnZXIiLCJuYmYiOjE3Nzc3MTI3NTUsImV4cCI6MTc3NzcxNjM1NSwiaWF0IjoxNzc3NzEyNzU1LCJpc3MiOiJUYXhpU2VydmVyIiwiYXVkIjoiVGF4aUNsaWVudCJ9.Hfh1Q3ebHjd5h6Hwe8j1ToxPz7KoRe6x7rbSy93nVUA
+
+@carId = 0e7f555e-fd64-47fc-aaa4-a1b7c6f93018
+
+###############################################################################
+# IDENTITY API
+###############################################################################
+
+### Login As Admin
+# @name login
+POST {{baseUrl}}/token/generate
+Content-Type: application/json
+
+{
+    "email": "admin@taxi.com",
+    "password": "Admin123!"
+}
+
+### Refresh Token
+POST {{baseUrl}}/token/refresh-token
+Content-Type: application/json
+
+{
+    "ExpiredAccessToken": "{{token}}",
+    "refreshToken": "..."
+}
+
+### Get User Info
+GET {{baseUrl}}/token/user-info
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# CARS API
+###############################################################################
+
+### Get OpenAPI document
+GET https://localhost:7007/openapi/v1.json
+
+### Get all cars (English)
+GET {{baseUrl}}/v1/cars
+Authorization: Bearer {{token}}
+Accept-Language: en
+
+### Get all cars (Arabic)
+GET {{baseUrl}}/v1/cars
+Authorization: Bearer {{token}}
+Accept-Language: ar
+
+### Get car by Id
+GET {{baseUrl}}/v1/cars/{{carId}}
+Authorization: Bearer {{token}}
+Accept-Language: en
+
+### Create a new car
+POST {{baseUrl}}/v1/cars
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "make": "Toyota",
+    "model": "Camry",
+    "year": 2024,
+    "descriptionEn": "Reliable and fuel-efficient sedan.",
+    "descriptionAr": "سيارة سيدان موثوقة وموفرة للوقود."
+}
+
+### Update an existing car
+PUT {{baseUrl}}/v1/cars/{{carId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "id": "{{carId}}",
+    "make": "Toyota",
+    "model": "Camry SE",
+    "year": 2025,
+    "descriptionEn": "Enhanced sport edition with premium features.",
+    "descriptionAr": "نسخة رياضية مطورة بميزات فاخرة."
+}
+
+### Remove a car
+DELETE {{baseUrl}}/v1/cars/{{carId}}
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# LOCALIZATION TEST PLAN — verify en/ar translation pipeline end to end
+###############################################################################
+
+### [LOC 1] Car NotFound, English
+# Expect: 404, body.title = "Car not found."
+GET {{baseUrl}}/v1/cars/00000000-0000-0000-0000-000000000000
+Accept-Language: en
+Authorization: Bearer {{token}}
+
+### [LOC 2] Car NotFound, Arabic
+# Expect: 404, body.title = "السيارة غير موجودة."
+GET {{baseUrl}}/v1/cars/00000000-0000-0000-0000-000000000000
+Accept-Language: ar
+Authorization: Bearer {{token}}
+
+### [LOC 3] Domain Validation failure (Missing Description), English
+# Expect: 400, description required message in English
+POST {{baseUrl}}/v1/cars
+Accept-Language: en
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "make": "Tesla",
+    "model": "Model 3",
+    "year": 2024,
+    "descriptionEn": "",
+    "descriptionAr": ""
+}
+
+### [LOC 4] Domain Validation failure (Missing Description), Arabic
+# Expect: 400, description required message in Arabic
+POST {{baseUrl}}/v1/cars
+Accept-Language: ar
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "make": "Tesla",
+    "model": "Model 3",
+    "year": 2024,
+    "descriptionEn": "",
+    "descriptionAr": ""
+}
