@@ -86,6 +86,16 @@ This system adopts a strictly **Controller-based** routing standard for all busi
 
 Every controller enforces rigid API versioning natively via `Asp.Versioning`.
 
+### 4.2.1. RESTful Naming Constitution (Key Takeaways)
+
+To ensure a professional, predictable, and scalable API surface, all developers and AI Agents must adhere to the following naming standards:
+
+1. **Nouns over Verbs**: Endpoints represent "things" (`/products`), not actions. Let HTTP methods (`GET`, `POST`, `PUT`, `DELETE`) define the action.
+2. **Always Pluralize**: Use plural nouns for all collections to maintain consistency, whether fetching a list (`/users`) or a single item (`/users/5`).
+3. **Keep Nesting Shallow**: Nest URLs at most one level deep to show relationships (e.g., `/products/5/reviews`). Avoid deep chains; if it goes deeper than two levels, link directly to the sub-resource.
+4. **Format Consistently**: All URIs must be **lowercase** and use **kebab-case** to separate words (e.g., `/customer-orders`).
+5. **Version Everything**: Always include a version indicator in your base route (e.g., `/api/v1/resources`). This protects clients from breaking during system overhauls.
+
 **The Rules for Controllers:**
 
 1. **Dumb Envelopes**: Controllers MUST NOT contain business logic. They should simply unwrap HTTP requests, dispatch a MediatR command/query, and wrap the `Result` into an `ActionResult`.

@@ -77,7 +77,7 @@ The solution is divided into highly specific boundary rings. You must consult th
 ### Ring 5: The Terminus
 
 1. **API / Presentation Layer:** The external boundary and Host. Exposes Domain-driven REST Controllers, translates native Domain `Result` objects into strict RFC 7807 `ProblemDetails` via extension mappers (`ProblemExtensions.cs`), and manages OpenTelemetry, Serilog Contexts, CORS, OutputCaching, and Rate Limiting.
-   👉 Refer to the HTTP routing standards here: [`Api_Layer_Blueprint.md`](Api_Layer_Blueprint.md)
+   👉 Refer to the HTTP routing standards here: [`Api_Layer_Blueprint.md`](Api_Layer_Blueprint.md) and the [RESTful Naming Constitution](RESTful_Naming_Constitution.md).
 
 ### Ring 6: The Consumer Sandbox
 
@@ -166,3 +166,17 @@ return result.Match(
 ```
 
 **The feature is now fully implemented following flawless Enterprise Clean Architecture execution.**
+
+---
+
+## 6. RESTful API Naming Constitution (Key Takeaways)
+
+To ensure a professional, predictable, and scalable API surface, all developers and AI Agents must adhere to the following naming standards:
+
+1. **Nouns over Verbs**: Endpoints represent "things" (`/products`), not actions. Let HTTP methods (`GET`, `POST`, `PUT`, `DELETE`) define the action.
+2. **Always Pluralize**: Use plural nouns for all collections to maintain consistency, whether fetching a list (`/users`) or a single item (`/users/5`).
+3. **Keep Nesting Shallow**: Nest URLs at most one level deep to show relationships (e.g., `/products/5/reviews`). Avoid deep chains; if it goes deeper than two levels, link directly to the sub-resource.
+4. **Format Consistently**: All URIs must be **lowercase** and use **kebab-case** to separate words (e.g., `/customer-orders`).
+5. **Version Everything**: Always include a version indicator in your base route (e.g., `/api/v1/resources`). This protects clients from breaking during system overhauls.
+
+---
