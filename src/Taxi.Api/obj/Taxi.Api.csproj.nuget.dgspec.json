@@ -1,24 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Api\\Taxi.Api.csproj": {}
+    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Api\\Taxi.Api.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Api\\Taxi.Api.csproj": {
+    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Api\\Taxi.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Api\\Taxi.Api.csproj",
+        "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Api\\Taxi.Api.csproj",
         "projectName": "Taxi.Api",
-        "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Api\\Taxi.Api.csproj",
-        "packagesPath": "C:\\Users\\Fat7i\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Api\\obj\\",
+        "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Api\\Taxi.Api.csproj",
+        "packagesPath": "C:\\Users\\fat7i\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Api\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -31,19 +31,20 @@
         },
         "frameworks": {
           "net10.0": {
+            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Application\\Taxi.Application.csproj": {
-                "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Application\\Taxi.Application.csproj"
+              "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj": {
+                "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj"
               },
-              "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Client\\Taxi.Client.csproj": {
-                "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Client\\Taxi.Client.csproj"
+              "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Client\\Taxi.Client.csproj": {
+                "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Client\\Taxi.Client.csproj"
               },
-              "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
-                "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj"
+              "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
+                "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj"
               },
-              "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj"
+              "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj"
               }
             }
           }
@@ -58,10 +59,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Asp.Versioning.Mvc": {
@@ -207,7 +209,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
@@ -625,21 +627,21 @@
         }
       }
     },
-    "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Application\\Taxi.Application.csproj": {
+    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Application\\Taxi.Application.csproj",
+        "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj",
         "projectName": "Taxi.Application",
-        "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Application\\Taxi.Application.csproj",
-        "packagesPath": "C:\\Users\\Fat7i\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Application\\obj\\",
+        "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj",
+        "packagesPath": "C:\\Users\\fat7i\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -652,10 +654,11 @@
         },
         "frameworks": {
           "net10.0": {
+            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Domain\\Taxi.Domain.csproj": {
-                "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Domain\\Taxi.Domain.csproj"
+              "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Domain\\Taxi.Domain.csproj": {
+                "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Domain\\Taxi.Domain.csproj"
               }
             }
           }
@@ -670,10 +673,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "FluentValidation.DependencyInjectionExtensions": {
@@ -764,7 +768,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1042,21 +1046,21 @@
         }
       }
     },
-    "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Client\\Taxi.Client.csproj": {
+    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Client\\Taxi.Client.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Client\\Taxi.Client.csproj",
+        "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Client\\Taxi.Client.csproj",
         "projectName": "Taxi.Client",
-        "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Client\\Taxi.Client.csproj",
-        "packagesPath": "C:\\Users\\Fat7i\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Client\\obj\\",
+        "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Client\\Taxi.Client.csproj",
+        "packagesPath": "C:\\Users\\fat7i\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Client\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -1069,10 +1073,11 @@
         },
         "frameworks": {
           "net10.0": {
+            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
-                "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj"
+              "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
+                "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj"
               }
             }
           }
@@ -1087,10 +1092,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Blazored.LocalStorage": {
@@ -1118,11 +1124,6 @@
               "version": "[10.0.7, )",
               "versionCentrallyManaged": true
             },
-            "Microsoft.DotNet.HotReload.WebAssembly.Browser": {
-              "target": "Package",
-              "version": "[10.0.203, )",
-              "autoReferenced": true
-            },
             "Microsoft.Extensions.Http": {
               "target": "Package",
               "version": "[10.0.7, )",
@@ -1131,13 +1132,13 @@
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[10.0.7, )",
+              "version": "[10.0.8, )",
               "autoReferenced": true
             },
             "Microsoft.NET.Sdk.WebAssembly.Pack": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[10.0.7, )",
+              "version": "[10.0.8, )",
               "autoReferenced": true
             },
             "StyleCop.Analyzers": {
@@ -1216,7 +1217,7 @@
           "downloadDependencies": [
             {
               "name": "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
-              "version": "[10.0.7, 10.0.7]"
+              "version": "[10.0.8, 10.0.8]"
             }
           ],
           "frameworkReferences": {
@@ -1224,7 +1225,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1507,21 +1508,21 @@
         }
       }
     },
-    "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
+    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
+        "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
         "projectName": "Taxi.Contracts",
-        "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
-        "packagesPath": "C:\\Users\\Fat7i\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\obj\\",
+        "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
+        "packagesPath": "C:\\Users\\fat7i\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -1534,6 +1535,7 @@
         },
         "frameworks": {
           "net10.0": {
+            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -1548,10 +1550,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.Components.DataAnnotations.Validation": {
@@ -1632,7 +1635,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1910,21 +1913,21 @@
         }
       }
     },
-    "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Domain\\Taxi.Domain.csproj": {
+    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Domain\\Taxi.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Domain\\Taxi.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Domain\\Taxi.Domain.csproj",
         "projectName": "Taxi.Domain",
-        "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Domain\\Taxi.Domain.csproj",
-        "packagesPath": "C:\\Users\\Fat7i\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Domain\\obj\\",
+        "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Domain\\Taxi.Domain.csproj",
+        "packagesPath": "C:\\Users\\fat7i\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -1937,10 +1940,11 @@
         },
         "frameworks": {
           "net10.0": {
+            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
-                "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Contracts\\Taxi.Contracts.csproj"
+              "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
+                "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj"
               }
             }
           }
@@ -1955,10 +1959,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "MediatR": {
@@ -2039,7 +2044,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -2317,21 +2322,21 @@
         }
       }
     },
-    "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj": {
+    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj",
         "projectName": "Taxi.Infrastructure",
-        "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\Fat7i\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Infrastructure\\obj\\",
+        "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj",
+        "packagesPath": "C:\\Users\\fat7i\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\fat7i\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -2344,10 +2349,11 @@
         },
         "frameworks": {
           "net10.0": {
+            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Application\\Taxi.Application.csproj": {
-                "projectPath": "C:\\Users\\Fat7i\\myProject\\homsi\\TAXI_SERVER\\src\\Taxi.Application\\Taxi.Application.csproj"
+              "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj": {
+                "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj"
               }
             }
           }
@@ -2362,10 +2368,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
@@ -2490,7 +2497,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

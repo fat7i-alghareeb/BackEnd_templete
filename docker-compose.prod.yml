@@ -1,5 +1,21 @@
 services:
+  # One-shot init: fix ownership of the api-wwwroot named volume so the non-root
+  # app user ($APP_UID = 1654 in the .NET image) can create runtime upload
+  # sub-dirs. A persisted named volume keeps its own root:root ownership and
+  # overlays the image's wwwroot, so the Dockerfile's build-time chmod never
+  # reaches it — this heals the volume on every `up`.
+  taxi.api-init:
+    image: busybox:1.36
+    command: sh -c "mkdir -p /app/wwwroot && chown -R 1654:1654 /app/wwwroot"
+    user: "0:0"
+    volumes:
+      - api-wwwroot:/app/wwwroot
+    restart: "no"
+
   taxi.api:
+    depends_on:
+      taxi.api-init:
+        condition: service_completed_successfully
     ports:
       - "5001:8080"
     environment:
@@ -9,6 +25,8 @@ services:
       JwtSettings__Secret: ${JWT_SECRET}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://seq:5341/ingest/otlp/v1/traces
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    volumes:
+      - api-wwwroot:/app/wwwroot
     restart: always
 
   postgres:
@@ -31,3 +49,6 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
     restart: always
+
+volumes:
+  api-wwwroot:

@@ -6,6 +6,7 @@
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
     <NoWarn>SA1633;SA0001;SA1518</NoWarn>
+    <UserSecretsId>health-backend-secrets</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

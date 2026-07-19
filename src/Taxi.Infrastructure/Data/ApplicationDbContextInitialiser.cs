@@ -46,6 +46,17 @@ public class ApplicationDbContextInitialiser(
         }
     }
 
+    /// <summary>
+    /// Drops the entire database and re-applies all migrations.
+    /// DESTRUCTIVE — only meant for local development resets.
+    /// Caller is responsible for gating this behind an environment / config check.
+    /// </summary>
+    public async Task ResetDatabaseAsync()
+    {
+        await this.context.Database.EnsureDeletedAsync();
+        await this.context.Database.MigrateAsync();
+    }
+
     private async Task TrySeedAsync()
     {
         // 1. Seed Roles

@@ -1,13 +1,16 @@
 using System.Globalization;
+using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 using Asp.Versioning;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
 using Serilog;
 
@@ -17,13 +20,14 @@ using Taxi.Api.OpenApi.Transformers;
 using Taxi.Api.Services;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Contracts.Common;
+using Taxi.Infrastructure.Data;
 using Taxi.Infrastructure.Settings;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         services.AddCustomProblemDetails()
                 .AddCustomApiVersioning()
@@ -35,7 +39,67 @@ public static class DependencyInjection
                 .AddAppLocalization()
                 .AddConfiguredCors(configuration)
                 .AddAppRateLimiting()
+                .AddAppForwardedHeaders(configuration, environment)
                 .AddApiDocumentation();
+
+        return services;
+    }
+
+    public static IServiceCollection AddAppForwardedHeaders(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    {
+        var settings = configuration.GetSection("ForwardedHeaders").Get<ForwardedHeadersSettings>()
+            ?? new ForwardedHeadersSettings();
+
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = settings.ForwardedHeaders;
+
+            if (settings.ForwardLimit.HasValue)
+            {
+                options.ForwardLimit = settings.ForwardLimit;
+            }
+
+            if (settings.KnownProxies is { Length: > 0 })
+            {
+                foreach (var proxy in settings.KnownProxies)
+                {
+                    try
+                    {
+                        options.KnownProxies.Add(IPAddress.Parse(proxy));
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException(
+                            $"Invalid ForwardedHeaders:KnownProxies value '{proxy}'.",
+                            ex);
+                    }
+                }
+            }
+
+            if (settings.KnownIPNetworks is { Length: > 0 })
+            {
+                foreach (var network in settings.KnownIPNetworks)
+                {
+                    try
+                    {
+                        options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException(
+                            $"Invalid ForwardedHeaders:KnownIPNetworks value '{network}'.",
+                            ex);
+                    }
+                }
+            }
+
+            if (environment.IsDevelopment() && settings.AllowAllInDevelopment)
+            {
+                options.KnownIPNetworks.Clear();
+                options.KnownProxies.Clear();
+                options.ForwardLimit = null;
+            }
+        });
 
         return services;
     }
@@ -219,6 +283,53 @@ public static class DependencyInjection
         return services;
     }
 
+    public static async Task ApplyMigrationsWithRetryAsync(this WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var initialiser = scope.ServiceProvider.GetRequiredService<ApplicationDbContextInitialiser>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+        // Opt-in destructive reset — only honored in Development to prevent
+        // accidental data loss in production even if the flag is misconfigured.
+        var resetOnStartup = configuration.GetValue<bool>("Database:ResetOnStartup");
+        if (resetOnStartup && app.Environment.IsDevelopment())
+        {
+            logger.LogWarning("Database:ResetOnStartup=true — dropping and recreating database.");
+            await initialiser.ResetDatabaseAsync();
+        }
+        else if (resetOnStartup)
+        {
+            logger.LogWarning("Database:ResetOnStartup=true ignored — only allowed in Development environment.");
+        }
+
+        const int maxAttempts = 5;
+        var delay = TimeSpan.FromSeconds(3);
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                logger.LogInformation("Applying database migrations (attempt {Attempt}/{MaxAttempts}).", attempt, maxAttempts);
+                await initialiser.InitialiseAsync();
+                await initialiser.SeedAsync();
+                logger.LogInformation("Database migrations completed successfully.");
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts)
+            {
+                logger.LogWarning(ex, "Database migration attempt {Attempt} failed. Retrying in {DelaySeconds}s.", attempt, delay.TotalSeconds);
+                await Task.Delay(delay);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Database migration failed after {MaxAttempts} attempts.", maxAttempts);
+                throw;
+            }
+        }
+    }
+
     public static IApplicationBuilder UseCoreMiddlewares(this IApplicationBuilder app, IConfiguration configuration)
     {
         app.UseRequestLocalization(new RequestLocalizationOptions()
@@ -231,6 +342,7 @@ public static class DependencyInjection
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseHttpsRedirection();
+        app.UseStaticFiles();
         app.UseSerilogRequestLogging();
         app.UseCors(configuration["AppSettings:CorsPolicyName"]!);
         app.UseRateLimiter();
