@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {}
+    "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {}
   },
   "projects": {
-    "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
+    "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
+        "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
         "projectName": "Taxi.Contracts",
-        "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
+        "projectPath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
         "packagesPath": "C:\\Users\\fat7i\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\obj\\",
+        "outputPath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Contracts\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [

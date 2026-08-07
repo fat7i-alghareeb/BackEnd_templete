@@ -4658,11 +4658,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj",
+      "projectUniqueName": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj",
       "projectName": "Taxi.Infrastructure",
-      "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj",
+      "projectPath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Infrastructure\\Taxi.Infrastructure.csproj",
       "packagesPath": "C:\\Users\\fat7i\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Infrastructure\\obj\\",
+      "outputPath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "centralPackageVersionsManagementEnabled": true,
       "fallbackFolders": [
@@ -4685,8 +4685,8 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj": {
-              "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Application\\Taxi.Application.csproj"
+            "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Application\\Taxi.Application.csproj": {
+              "projectPath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Application\\Taxi.Application.csproj"
             }
           }
         }

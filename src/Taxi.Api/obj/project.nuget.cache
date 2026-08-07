@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "bK5qxJwvVEs=",
+  "dgSpecHash": "i+OarA1krP0=",
   "success": true,
-  "projectFilePath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Api\\Taxi.Api.csproj",
+  "projectFilePath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Api\\Taxi.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\fat7i\\.nuget\\packages\\asp.versioning.abstractions\\10.0.0\\asp.versioning.abstractions.10.0.0.nupkg.sha512",
     "C:\\Users\\fat7i\\.nuget\\packages\\asp.versioning.http\\10.0.0\\asp.versioning.http.10.0.0.nupkg.sha512",
@@ -145,9 +145,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'Microsoft.OpenApi' 2.4.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-v5pm-xwqc-g5wc",
-      "projectPath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Api\\Taxi.Api.csproj",
+      "projectPath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Api\\Taxi.Api.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Api\\Taxi.Api.csproj",
+      "filePath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Api\\Taxi.Api.csproj",
       "libraryId": "Microsoft.OpenApi",
       "targetGraphs": [
         "net10.0"

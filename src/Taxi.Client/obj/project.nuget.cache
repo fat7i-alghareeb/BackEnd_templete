@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "YFN5Ga/aaes=",
+  "dgSpecHash": "Z6OWDt70Wco=",
   "success": true,
-  "projectFilePath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Client\\Taxi.Client.csproj",
+  "projectFilePath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Client\\Taxi.Client.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\fat7i\\.nuget\\packages\\blazored.localstorage\\4.5.0\\blazored.localstorage.4.5.0.nupkg.sha512",
     "C:\\Users\\fat7i\\.nuget\\packages\\humanizer\\3.0.10\\humanizer.3.0.10.nupkg.sha512",

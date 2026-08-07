@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "aYdBwSEiBGU=",
+  "dgSpecHash": "gqEsE9GvSXA=",
   "success": true,
-  "projectFilePath": "C:\\Users\\fat7i\\myProjects\\evolvo\\evolvoHealth\\health_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
+  "projectFilePath": "C:\\Users\\fat7i\\myProjects\\indoor-mapping-platform\\college_backend\\src\\Taxi.Contracts\\Taxi.Contracts.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\fat7i\\.nuget\\packages\\microsoft.aspnetcore.authorization\\3.1.3\\microsoft.aspnetcore.authorization.3.1.3.nupkg.sha512",
     "C:\\Users\\fat7i\\.nuget\\packages\\microsoft.aspnetcore.components\\3.1.3\\microsoft.aspnetcore.components.3.1.3.nupkg.sha512",
