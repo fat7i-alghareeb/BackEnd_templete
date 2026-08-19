@@ -65,7 +65,4 @@ public readonly record struct Error
 
     public static Error Forbidden(string code = nameof(Forbidden), string description = "Forbidden error", params object[] args)
         => new(code, description, ErrorKind.Forbidden, args.Length > 0 ? args : null);
-
-    public static Error Create(int type, string code, string description)
-        => new(code, description, (ErrorKind)type);
 }

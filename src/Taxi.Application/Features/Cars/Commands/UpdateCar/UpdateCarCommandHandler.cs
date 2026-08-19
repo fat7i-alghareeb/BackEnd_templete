@@ -3,6 +3,7 @@ namespace Taxi.Application.Features.Cars.Commands.UpdateCar;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Taxi.Application.Common.Caching;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Domain.Cars;
 using Taxi.Domain.Common.Results;
@@ -36,7 +37,7 @@ public class UpdateCarCommandHandler(IAppDbContext context, HybridCache cache) :
 
         await this.context.SaveChangesAsync(cancellationToken);
 
-        await this.cache.RemoveByTagAsync("car", cancellationToken);
+        await this.cache.RemoveByTagAsync(CacheTags.Cars, cancellationToken);
 
         return Result.Updated;
     }

@@ -1,15 +1,13 @@
 namespace Taxi.Application.Features.Identity.Queries.GetUserInfo;
 
 using MediatR;
-using Taxi.Application.Common.Interfaces;
 using Taxi.Application.Features.Identity.Dtos;
 using Taxi.Domain.Common.Results;
 
-public record GetUserByIdQuery(string UserId) : ICachedQuery<Result<AppUserDto>>
-{
-    public string CacheKey => $"user-info-{this.UserId}";
-
-    public string[] Tags => ["user-info"];
-
-    public TimeSpan Expiration => TimeSpan.FromMinutes(10);
-}
+/// <summary>
+/// Deliberately NOT an <c>ICachedQuery</c>. Roles and claims drive authorization, and no command
+/// in the solution evicts <c>CacheTags.UserInfo</c> — caching this would serve a stale role set
+/// for the full expiration window after any permission change. Re-introduce caching only
+/// together with a command that calls <c>RemoveByTagAsync(CacheTags.UserInfo, ct)</c>.
+/// </summary>
+public record GetUserByIdQuery(string UserId) : IRequest<Result<AppUserDto>>;

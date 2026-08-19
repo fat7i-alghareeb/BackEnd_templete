@@ -1,566 +1,514 @@
-# 🏛️ Architectural Constitution: Infrastructure Layer Blueprint
+# Infrastructure Layer Blueprint — `Taxi.Infrastructure`
 
-## 1. Executive Summary & Layer Purpose
+> Start at [AGENTS.md](../../AGENTS.md) — it carries the rules and the add-a-feature
+> checklist. This file is the deep reference for the Infrastructure layer.
+> Map of all docs: [NAVIGATION.md](../../docs/NAVIGATION.md).
 
-The Infrastructure Layer represents the absolute outer boundary of our application's interaction with the physical world. It is the rugged, industrialized zone where the pristine, abstract business rules of the Domain and Application layers finally collide with databases, file systems, third-party APIs, JWT cryptographic libraries, and background job executing threads.
+The plugin ring. Concrete implementations of the interfaces `Taxi.Application` declares:
+PostgreSQL via EF Core, ASP.NET Identity, JWT issuance, and cache registration.
 
-In a strict Clean Architecture, the Infrastructure Layer is a **plugin**.
-The central Application Layer defines what it _needs_ via interfaces (`IAppDbContext`, `IEmailNotifier`, `ITokenProvider`). The Infrastructure Layer's sole purpose is to implement those interfaces using concrete, heavy, third-party libraries (Entity Framework Core, ASP.NET Core Identity, SignalR, Redis, SMTP clients).
-
-If we suddenly decide to replace PostgreSQL with another database, or switch our email provider from SendGrid to Mailgun, the Domain and Application layers must require zero changes. All modifications are strictly contained within the Infrastructure Layer.
-
-### What are its primary responsibilities?
-
-1. **Object-Relational Mapping (ORM):** Translating memory-bound Domain Entities (Aggregates, Value Objects) into SQL tables via EF Core configurations.
-2. **Side-Effect execution:** Sending real emails, generating physical PDFs, communicating with websockets.
-3. **Cross-Cutting technical concerns:** Managing JSON Web Tokens (JWT), Identity roles, and cryptographic hashing.
-4. **Background processing:** Periodically sweeping databases or triggering scheduled tasks outside of the normal HTTP Request pipeline.
+Reference implementations: **`Data/AppDbContext.cs`**, **`Data/Configurations/CarConfiguration.cs`**,
+**`Identity/TokenProvider.cs`**.
 
 ---
 
-## 2. Dependency Rules & Boundaries
+## 1. Purpose
 
-The Dependency Inversion Principle reaches its absolute peak in the Infrastructure Layer.
+Application says *what* it needs (`IAppDbContext`, `IIdentityService`, `ITokenProvider`);
+Infrastructure says *how*. Everything technology-specific lives here so that swapping PostgreSQL,
+or the token format, or the cache backend, touches no use case.
 
-### Inward Pointing Dependencies
-
-The Infrastructure Layer references **everything inside**. It MUST reference the Application Layer (to fulfill its interfaces) and the Domain Layer (to map its entities to the database).
-
-### Outward Pointing Dependencies
-
-**Nothing depends on the Infrastructure Layer.**
-The Domain, the Contracts, and the Application Layer do NOT reference this project. Even the API Presentation Layer does not reference the inner implementations directly; it merely invokes the `services.AddInfrastructure()` extension method during startup.
-
-This strict rule prevents developers from taking shortcuts, such as directly injecting `SqlConnection` or `AppDbContext` into an API Controller.
+It is also the composition point for all data-related DI: `AddInfrastructure(configuration)` is a
+single call from `Program.cs`.
 
 ---
 
-## 3. Directory Anatomy
+## 2. Dependency rules
 
-Our Infrastructure layer categorizes files by their technical integration strategy.
+**References:** `Taxi.Application` (project). Packages: `Npgsql.EntityFrameworkCore.PostgreSQL`,
+`Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.AspNetCore.Authentication.JwtBearer`,
+`Microsoft.AspNetCore.Authorization`, `Microsoft.Extensions.Caching.Hybrid`,
+`Serilog.AspNetCore`, `Serilog.Sinks.Seq`, EF Core `Tools` + `Design` (both `PrivateAssets=all`).
+
+Domain and Contracts are reachable transitively and used directly (entities, `Result<T>`,
+`LocalizationKeys`).
+
+**Referenced by:** `Taxi.Api` — **only** so `Program.cs` can call `AddInfrastructure`. No
+controller may reference a type from this project.
+
+**Never add:** a reference to `Taxi.Api` · business rules · anything that decides *what* should
+happen rather than *how* it is stored or transmitted.
+
+`Serilog.Sinks.Seq` backs the Seq sink configured in `appsettings.Development.json`.
+
+---
+
+## 3. Directory structure
 
 ```text
-src/MechanicShop.Infrastructure/
-├── BackgroundJobs/
-│   └── AbandonedCartCleanupService.cs
+src/Taxi.Infrastructure/
 ├── Data/
 │   ├── AppDbContext.cs
 │   ├── ApplicationDbContextInitialiser.cs
 │   ├── Configurations/
-│   │   ├── CustomerConfiguration.cs
-│   │   └── OrderConfiguration.cs
+│   │   ├── CarConfiguration.cs
+│   │   └── RefreshTokenConfiguration.cs
 │   ├── Interceptors/
-│   │   └── AuditableEntityInterceptor.cs
+│   │   ├── AuditableEntityExtensions.cs
+│   │   ├── AuditableEntityInterceptor.cs
+│   │   └── DispatchDomainEventsInterceptor.cs
 │   └── Migrations/
+│       ├── 20260502062106_Initial_Cars.cs
+│       ├── 20260502070738_AddLocalizedDescriptionToCar.cs
+│       └── AppDbContextModelSnapshot.cs
 ├── Identity/
-│   ├── TokenProvider.cs
+│   ├── AppUser.cs
 │   ├── IdentityService.cs
-│   └── Policies/
-├── RealTime/
-│   ├── OrderHub.cs
-│   └── SignalROrderNotifier.cs
-├── Services/
-│   ├── InvoicePdfGenerator.cs
-│   ├── EmailNotificationService.cs
-│   └── TaxCalculationPolicy.cs
+│   └── TokenProvider.cs
 ├── Settings/
 │   └── AppSettings.cs
-└── DependencyInjection.cs
+├── DependencyInjection.cs
+└── Infrastructure_Layer_Blueprint.md
 ```
+
+| Folder | Holds |
+|---|---|
+| `Data/` | `DbContext`, initialiser, EF configurations, interceptors, migrations |
+| `Data/Configurations/` | One `IEntityTypeConfiguration<T>` per entity — auto-discovered |
+| `Data/Interceptors/` | `ISaveChangesInterceptor` implementations |
+| `Identity/` | The Identity user type and the two services wrapping ASP.NET Identity + JWT |
+| `Settings/` | Strongly-typed options bound from configuration |
+
+There is **no** `BackgroundJobs/`, `RealTime/`, `Services/` or `Identity/Policies/` folder. Add one
+only when you have a real member for it.
 
 ---
 
-## 4. The DbContext & Entity Configurations
-
-If you throw twenty `[Table]` and `[Column]` data annotations onto a Domain Entity, you have ruined the purity of the Domain by marrying it to EF Core. Instead, our Domain remains pure, and the mapping logic occurs strictly within configuration classes in the Infrastructure Layer.
-
-### 4.1. Keeping the DbContext Clean
-
-The `AppDbContext` should largely just consist of `DbSet<T>` properties and global overrides.
+## 4. `AppDbContext`
 
 ```csharp
-using MechanicShop.Application.Common.Interfaces;
-using MechanicShop.Domain.Customers;
-using MechanicShop.Domain.Orders;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-
-namespace MechanicShop.Infrastructure.Data;
-
-// Inherit from IdentityDbContext to seamlessly blend Custom User tables with our Business Tables
 public class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<AppUser>(options), IAppDbContext
 {
-    public DbSet<Customer> Customers => Set<Customer>();
-    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<Car> Cars => this.Set<Car>();
+
+    public DbSet<RefreshToken> RefreshTokens => this.Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
-
-        // Magically scans the assembly and applies all IEntityTypeConfiguration classes
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }
 ```
 
-### 4.2. IEntityTypeConfiguration and Value Objects
+Deliberately minimal: `DbSet` properties and one override. Cross-cutting save behaviour —
+auditing, domain events — lives in interceptors, so the context never grows a pipeline.
 
-We use isolated configuration classes to control how objects save to SQL. Particularly, **Value Objects** must be mapped securely so they do not accidentally create separate SQL tables.
+- Inherits `IdentityDbContext<AppUser>` — Identity tables and business tables share one context
+  and therefore one transaction.
+- Implements `IAppDbContext`, the Application-facing surface. Adding an entity means adding the
+  `DbSet` in **both** places.
+- `base.OnModelCreating` must be called first, or the Identity model is not configured.
+- `ApplyConfigurationsFromAssembly` picks up every `IEntityTypeConfiguration<T>` automatically —
+  never register one by hand.
+
+### Domain event dispatch
+
+`DispatchDomainEventsInterceptor` publishes domain events **after the transaction commits**.
+
+The split is forced by EF Core's lifecycle: events must be *collected* in `SavingChanges`, because
+the ChangeTracker is reset afterwards, but *published* in `SavedChanges`, once the data is durable.
+The interceptor is scoped, so it holds the pending events on itself between the two callbacks and
+clears each entity's list at collection time — a second `SaveChanges` in the same scope cannot
+re-publish them.
+
+**Why after the commit:** an event asserts that something *has happened*. Publishing before the
+write is durable means a handler can act on a change that then fails to persist.
+
+**The trade-off:** a handler that throws no longer rolls the transaction back, so the side effect
+is lost while the write survives. If a side effect must never be lost, write an outbox row inside
+the same transaction and process it separately — see Future Extensions.
+
+No concrete `DomainEvent` exists yet, so nothing exercises this today.
+
+---
+
+## 5. Entity configuration
 
 ```csharp
-using MechanicShop.Domain.Orders;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-namespace MechanicShop.Infrastructure.Data.Configurations;
-
-public class OrderConfiguration : IEntityTypeConfiguration<Order>
+public class CarConfiguration : IEntityTypeConfiguration<Car>
 {
-    public void Configure(EntityTypeBuilder<Order> builder)
+    public void Configure(EntityTypeBuilder<Car> builder)
     {
-        builder.HasKey(o => o.Id);
+        builder.HasKey(c => c.Id);
 
-        // Map Value Object into JSONB column in PostgreSQL
-        // All bilingual fields (LocalizedText) must use this pattern
-        builder.OwnsOne(o => o.Name, a =>
+        builder.Property(c => c.Make).IsRequired().HasMaxLength(100);
+        builder.Property(c => c.Model).IsRequired().HasMaxLength(100);
+        builder.Property(c => c.Year).IsRequired();
+
+        builder.OwnsOne(c => c.Description, description =>
         {
-            a.ToJson();
+            description.ToJson();
+            description.Property(d => d.En).IsRequired();
+            description.Property(d => d.Ar).IsRequired();
         });
 
-        // EF Core limitation: OwnsMany -> ToTable() cannot nest OwnsOne -> ToJson()
-        // In these cases, map LocalizedText properties as flat columns:
-        // items.OwnsOne(i => i.Description, desc => {
-        //     desc.Property(d => d.En).HasColumnName("DescriptionEn");
-        //     desc.Property(d => d.Ar).HasColumnName("DescriptionAr");
-        // });
-
-        // Enforce strong typing for an Enumeration natively backed by a string in SQL
-        // WARNING: If an enum represents a value used in calculations (e.g. Duration),
-        // do NOT use string conversion as it breaks SQL-side SUM() and AVG().
-        builder.Property(o => o.State)
-            .HasConversion<string>()
-            .HasMaxLength(30);
+        builder.HasIndex(c => new { c.Make, c.Model });
     }
 }
 ```
+
+- **All mapping lives here.** The Domain carries no EF attributes.
+- **`LocalizedText` is always `OwnsOne(...).ToJson()`** — one JSONB column holding
+  `{"En": "...", "Ar": "..."}`. This is why `LocalizedText` needs its private parameterless
+  constructor and settable properties.
+- Constrain lengths here as well as in the Contracts DataAnnotations — the annotation protects the
+  API, this protects the database.
+- EF Core cannot nest `OwnsOne(...).ToJson()` inside an `OwnsMany(...).ToTable(...)`. In that
+  situation map the two languages as flat columns instead:
+
+  ```csharp
+  items.OwnsOne(i => i.Label, label =>
+  {
+      label.Property(l => l.En).HasColumnName("LabelEn");
+      label.Property(l => l.Ar).HasColumnName("LabelAr");
+  });
+  ```
+
+  This is a persistence workaround only — the entity still exposes a `LocalizedText`.
+
+### Migrations
+
+```powershell
+dotnet ef migrations add <Name> -p src/Taxi.Infrastructure -s src/Taxi.Api
+```
+
+Migrations always target Infrastructure with the API as startup project (the connection string
+lives in the API's configuration). Review the generated file — an unintended `DropColumn` on a
+JSONB owned type is easy to produce and expensive to discover.
 
 ---
 
-## 5. Entity Framework Core Interceptors & Flow
+## 6. Interceptors
 
-Interceptors allow us to intercept Entity Framework exactly at the moment `SaveChanges` is invoked, enabling us to inject systemic rules universally without relying on developers to "remember" to type them manually.
+Two are registered as `ISaveChangesInterceptor` (both scoped) and attached to the context in
+`AddInfrastructure` via `options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())`.
+Adding a third means registering it there and nothing else.
 
-### 5.1. The AuditableEntityInterceptor
+| Interceptor | Runs | Does |
+|---|---|---|
+| `AuditableEntityInterceptor` | `SavingChanges` | Stamps audit columns |
+| `DispatchDomainEventsInterceptor` | `SavingChanges` + `SavedChanges` | Collects events before the write, publishes after the commit (§4) |
 
-When dealing with `CreatedAtUtc`, `CreatedBy`, `LastModifiedUtc`, developers often forget to assign these right before saving. Our `AuditableEntityInterceptor` catches ALL entities inheriting from `AuditableEntity` globally.
+### `AuditableEntityInterceptor`
 
-```csharp
-public class AuditableEntityInterceptor(IUser user, TimeProvider dateTime) : SaveChangesInterceptor
-{
-    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
-        DbContextEventData eventData,
-        InterceptionResult<int> result,
-        CancellationToken cancellationToken = default)
-    {
-        if (eventData.Context == null) return base.SavingChangesAsync(eventData, result, cancellationToken);
+Stamps every tracked `AuditableEntity`:
 
-        var utcNow = dateTime.GetUtcNow();
+- `EntityState.Added` → `CreatedBy` + `CreatedAtUtc`, then `LastModifiedBy` + `LastModifiedUtc`.
+- `EntityState.Modified` **or** `entry.HasChangedOwnedEntities()` → `LastModifiedBy` +
+  `LastModifiedUtc`. The owned-entity check matters: editing only a `LocalizedText` leaves the
+  owner `Unchanged`, and without it the timestamp would not move.
+- Owned references that are themselves `AuditableEntity` get stamped too.
 
-        foreach (var entry in eventData.Context.ChangeTracker.Entries<AuditableEntity>())
-        {
-            if (entry.State == EntityState.Added)
-            {
-                entry.Entity.CreatedBy = user.Id;
-                entry.Entity.CreatedAtUtc = utcNow;
-            }
-            if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
-            {
-                entry.Entity.LastModifiedBy = user.Id;
-                entry.Entity.LastModifiedUtc = utcNow;
-            }
-        }
+Values come from `IUser` (implemented in the **API** layer as `CurrentUser`) and `TimeProvider`
+(registered as `TimeProvider.System`, so tests can substitute a fake clock).
 
-        // CRITICAL: All timestamps MUST be stored as UTC (TimeOffset.Zero).
-        // The interceptor ensures that no local/unspecified date leaks into the DB.
-        return base.SavingChangesAsync(eventData, result, cancellationToken);
-    }
-}
-```
-
-### 5.2. Dispatching Domain Events
-
-The most critical step in an Aggregate's lifecycle is publishing the Domain Events it accrued in memory right before the database transaction concludes. While sometimes done via interceptors, our architecture specifically handles this directly inside a `SaveChangesAsync` override for maximum transaction proximity.
-
-```csharp
-// Inside AppDbContext.cs
-public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-{
-    // 1. Gather all events from entities currently modified in memory
-    var domainEntities = ChangeTracker.Entries()
-        .Where(e => e.Entity is Entity baseEntity && baseEntity.DomainEvents.Count != 0)
-        .Select(e => (Entity)e.Entity)
-        .ToList();
-
-    var domainEvents = domainEntities.SelectMany(e => e.DomainEvents).ToList();
-
-    // 2. Clear the events queue so they aren't double-fired
-    foreach (var entity in domainEntities) { entity.ClearDomainEvents(); }
-
-    // 3. Dispatch the events to the Application Layer asynchronously
-    foreach (var domainEvent in domainEvents)
-    {
-        await mediator.Publish(domainEvent, cancellationToken);
-    }
-
-    // 4. Finally execute the ORM database mapping
-    return await base.SaveChangesAsync(cancellationToken);
-}
-```
+`AuditableEntityExtensions.HasChangedOwnedEntities` is the supporting extension.
 
 ---
 
-## 6. JWT, Authentication, and Identity Management
+## 7. Initialisation and seeding
 
-The identity system (usually `Microsoft.AspNetCore.Identity`) is notoriously heavy. If we leaked its `UserManager<T>` into our Application Layer, we would be eternally locked into Microsoft framework specifics.
+`ApplicationDbContextInitialiser`:
 
-Instead, the Application Layer uses a lightweight wrapper: `IIdentityService`. The Infrastructure Layer natively resolves the complex JWT claims, password hashing, and token issuance.
+| Method | Does |
+|---|---|
+| `InitialiseAsync` | `Database.MigrateAsync()` when the provider is Npgsql. Logs and rethrows on failure. |
+| `SeedAsync` | Delegates to `TrySeedAsync` with logging. |
+| `TrySeedAsync` | Creates the `Manager` role, the `admin@taxi.com` / `Admin123!` user (`EmailConfirmed = true`), and one sample `Car` — each guarded by an existence check, so it is idempotent. |
+| `ResetDatabaseAsync` | **Destructive.** `EnsureDeletedAsync` then `MigrateAsync`. |
 
-```csharp
-// The implementation of the Application Layer Interface
-public class TokenProvider(IConfiguration configuration) : ITokenProvider
-{
-    public string GenerateToken(AppUser user, IList<string> roles)
-    {
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id),
-            new(JwtRegisteredClaimNames.Email, user.Email!),
-        };
+**Who calls it:** `Program.cs` → `app.ApplyMigrationsWithRetryAsync()`, which lives in
+`Taxi.Api/DependencyInjection.cs`. It honours `Database:ResetOnStartup` (ignored outside
+Development) and retries `InitialiseAsync` + `SeedAsync` up to 5 times, 3 seconds apart, so the
+API survives starting before PostgreSQL is ready. Migration on startup is gated by
+`Database:ApplyMigrationsOnStartup`, defaulting to on outside Production.
 
-        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+`ApplyMigrationsWithRetryAsync` is the single entry point. An older retry-free
+`InitialiserExtensions.InitialiseDatabaseAsync` used to sit here unused and has been removed —
+do not reintroduce a second path.
 
-        var jwtSettings = configuration.GetSection("JwtSettings");
-        var secret = jwtSettings["Secret"]!;
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: jwtSettings["Issuer"],
-            audience: jwtSettings["Audience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(120),
-            signingCredentials: creds
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-}
-```
+Seeding uses the real `Car.Create` factory and checks `IsSuccess` — seed data goes through the same
+invariants as user input.
 
 ---
 
-## 7. Real-Time Communication (SignalR)
+## 8. Identity and tokens
 
-Real-time protocols like WebSockets often tempt developers to build controllers directly inside Hubs. This violates CQRS. In Clean Architecture, a SignalR Hub acts purely as a dumb outbound router.
+### `IdentityService : IIdentityService`
 
-If a user connects to a page, they listen. The actual invocation to send a message comes from an Application Layer MediatR Event Handler, which resolves an `IOrderNotifier` that the Infrastructure implements!
+Wraps `UserManager<AppUser>`, `IUserClaimsPrincipalFactory<AppUser>` and `IAuthorizationService`
+so no ASP.NET Identity type reaches the Application layer. Returns `Result<AppUserDto>`, never
+`IdentityResult`.
 
-```csharp
-// Infrastructure/RealTime/OrderHub.cs
-// Notice how absolutely empty this is. It's just a connection pipeline.
-public class OrderHub : Hub { }
+Failure codes are `LocalizationKeys.Auth.*` constants — `UserNotFound`, `EmailNotConfirmed`,
+`InvalidLoginAttempt`. Emails in the `Description` fallback are masked through
+`UtilityService.MaskEmail`. **Any new failure here needs a `LocalizationKeys` constant and entries
+in both resource files.**
 
-// Infrastructure/RealTime/SignalROrderNotifier.cs
-// The Application Layer depends on IOrderNotifier. This class implements it.
-public class SignalROrderNotifier(IHubContext<OrderHub> hubContext) : IOrderNotifier
-{
-    public async Task NotifyOrderStatusChangedAsync(Guid orderId, string state)
-    {
-        // Executes the physical web-socket broadcast
-        await hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", orderId, state);
-    }
-}
-```
+### `TokenProvider : ITokenProvider`
+
+- `GenerateJwtTokenAsync` — HMAC-SHA256 access token from the `JwtSettings` section
+  (`Secret`, `Issuer`, `Audience`, `TokenExpirationInMinutes`), with `sub`, `email`, and one
+  `ClaimTypes.Role` per role.
+- Refresh token rotation, in one unit of work: `ExecuteDeleteAsync` all existing rows for the
+  user, then `RefreshToken.Create(...)` (checked for `IsError`) with a 7-day expiry, then
+  `SaveChangesAsync`. One live refresh token per user.
+- `GenerateRefreshToken` — `RandomNumberGenerator.GetBytes(32)`, base64. Opaque and random, not a
+  JWT.
+- `GetPrincipalFromExpiredToken` — validates issuer, audience and signature with
+  `ValidateLifetime = false`, so an expired access token can still identify its owner during
+  refresh. Rejects any algorithm other than HMAC-SHA256.
+
+`AppUser : IdentityUser` is currently empty. Extra profile fields go here (and produce a migration).
 
 ---
 
-## 8. Proactive Discovery: Background Jobs (Hosted Services)
-
-Often, a system requires sweeping automation (e.g., "Cancel all orders that have remained unpaid for 48 hours"). Because this operation operates outside the standard HTTP Request, it belongs in the Infrastructure Layer as a `BackgroundService`.
-
-**Crucial Architecture Note:** Background services execute as Singletons, but `IAppDbContext` is Scoped. You MUST use `IServiceScopeFactory` to spawn a manual scope inside the background loop to safely connect to the database.
+## 9. Settings
 
 ```csharp
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
+public class AppSettings
+{
+    public string CorsPolicyName { get; set; } = default!;
+    public string[] AllowedOrigins { get; set; } = default!;
+    public string DefaultLanguage { get; set; } = Languages.Default;
+}
+```
 
-namespace MechanicShop.Infrastructure.BackgroundJobs;
+Bound with `services.Configure<AppSettings>(configuration.GetSection("AppSettings"))` and consumed
+through `IOptions<AppSettings>` — or, in `AddConfiguredCors`, read directly at startup via
+`configuration.GetSection("AppSettings").Get<AppSettings>()`, which is acceptable in the
+composition root only.
 
-public class AbandonedCartCleanupService(
+`JwtSettings` and `ConnectionStrings:DefaultConnection` are **not** bound to a settings class —
+`TokenProvider` and `AddInfrastructure` read `IConfiguration` directly. Both are blank in
+`appsettings.json` on purpose; supply them via user secrets, environment variables or `.env`.
+
+`ForwardedHeadersSettings` lives in the **API** project, since forwarded headers are an HTTP
+concern.
+
+---
+
+## 10. `AddInfrastructure(configuration)`
+
+In order:
+
+1. `Configure<AppSettings>` from the `AppSettings` section.
+2. `AddSingleton(TimeProvider.System)`.
+3. Read `ConnectionStrings:DefaultConnection`; `ArgumentNullException.ThrowIfNull` — fail fast at
+   startup rather than on first request.
+4. `AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>()`.
+5. `AddDbContext<AppDbContext>` — attaches all registered interceptors, `UseNpgsql` with
+   `EnableRetryOnFailure(5, 10s)` and a 60-second command timeout.
+6. `AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>())` — the same scoped
+   instance behind both types, so one transaction covers a request.
+7. JWT bearer authentication: validates issuer, audience, lifetime and signing key, 30-second
+   clock skew.
+8. `AddIdentityCore<AppUser>().AddRoles<IdentityRole>().AddEntityFrameworkStores<AppDbContext>()
+   .AddDefaultTokenProviders()` — **`IdentityCore`, not `AddIdentity`**: no cookie scheme is
+   registered, which is correct for a token API. Password rules are deliberately relaxed
+   (6 chars, no digit/upper/symbol requirement) — tighten before production.
+9. `AddTransient<IIdentityService, IdentityService>()`, `AddTransient<ITokenProvider, TokenProvider>()`.
+10. `AddHybridCache` — 10-minute default expiration, 30-second L1 window.
+
+Note the lifetimes: the interceptor and `DbContext` are **scoped**; the identity services are
+**transient** but depend on scoped `UserManager` / `IAppDbContext`, which is safe (transient
+resolving scoped inside a scoped request).
+
+---
+
+## 11. Belongs / does not belong
+
+**Belongs:** `DbContext` and EF configurations · migrations and seeding · interceptors ·
+implementations of Application interfaces · JWT and Identity plumbing · options classes ·
+DI registration for all of the above.
+
+**Does not belong:** business rules or `throw` on a business condition — by the time an entity
+reaches `Add()`, Domain and Application have already validated it · `HttpContext` access (use
+`IUser`) · defining a new abstraction (declare it in Application, implement it here) ·
+returning `IdentityResult` or any provider type to an outer layer.
+
+---
+
+## 12. Naming
+
+| Thing | Convention |
+|---|---|
+| Configuration | `<Entity>Configuration : IEntityTypeConfiguration<Entity>` in `Data/Configurations/` |
+| Interceptor | `<Concern>Interceptor : SaveChangesInterceptor` in `Data/Interceptors/` |
+| Service | named after the interface without the `I` — `IIdentityService` → `IdentityService` |
+| Settings | `<Area>Settings`, matching the configuration section name |
+| Migration | `dotnet ef migrations add <VerbNoun>` — `AddLocalizedDescriptionToCar` |
+
+Members use the `this.` prefix like the rest of the solution; primary-constructor parameters are
+assigned to `private readonly` fields without an underscore.
+
+---
+
+## 13. Talking to other layers
+
+| Direction | How |
+|---|---|
+| **← Application** | Implements the interfaces Application declares — `IAppDbContext`, `IIdentityService`, `ITokenProvider`. It never declares its own business abstraction. |
+| **→ Application** | Returns `Result<T>` and Application DTOs (`AppUserDto`, `TokenResponse`). Never `IdentityResult`, never an EF or Npgsql type. |
+| **→ Domain** | Maps entities in `IEntityTypeConfiguration<T>`; seeds through the real `Entity.Create` factories; stamps `AuditableEntity` fields in the interceptor. Reads `Result<T>` when a factory can fail. |
+| **→ Contracts** | `LocalizationKeys` for error codes, `Languages.Default` for `AppSettings`. |
+| **← Api** | One call only: `AddInfrastructure(configuration)` from `Program.cs`, plus `ApplicationDbContextInitialiser` in the startup path. No controller may name a type from this project. |
+| **← Api (inbound dependency)** | `IUser` is consumed by `AuditableEntityInterceptor` but **implemented in `Taxi.Api`** (`CurrentUser`), because it needs `HttpContext`. Outside a request `IUser.Id` is null — which is why `CreatedBy` is nullable. |
+
+Adding a capability follows one direction every time: **declare the interface in Application,
+implement it here, register it in `AddInfrastructure`.** Never the reverse.
+
+---
+
+## 14. Common mistakes
+
+| ❌ | ✅ |
+|---|---|
+| `[Table("Cars")]` on the entity | `builder.ToTable("Cars")` in the configuration |
+| `builder.Property(c => c.Description)` for a `LocalizedText` | `builder.OwnsOne(c => c.Description, d => d.ToJson())` |
+| Registering a configuration manually | `ApplyConfigurationsFromAssembly` already found it |
+| `throw` on a business condition in a service | Return `Error` / `Result<T>` |
+| `Error.NotFound("User_Not_Found", ...)` | `Error.NotFound(LocalizationKeys.Auth.UserNotFound, ...)` |
+| `IHttpContextAccessor` in a service here | Inject `IUser` |
+| Adding an entity to `AppDbContext` only | Add the `DbSet` to `IAppDbContext` too |
+| `dotnet ef migrations add X` from the repo root | `-p src/Taxi.Infrastructure -s src/Taxi.Api` |
+| `EnsureCreated()` | `MigrateAsync()` — `EnsureCreated` skips the migration history |
+
+---
+
+## 15. Future Extensions — NOT IMPLEMENTED
+
+> ⚠️ **None of the following exists in this repository.** Corrected sketches only — in particular,
+> the previous version of this document showed a Dapper sample using `Microsoft.Data.SqlClient`
+> against a PostgreSQL database, which would not work.
+
+### 15.1 Background jobs
+
+```csharp
+// src/Taxi.Infrastructure/BackgroundJobs/ExpiredRefreshTokenSweeper.cs
+public sealed class ExpiredRefreshTokenSweeper(
     IServiceScopeFactory scopeFactory,
-    ILogger<AbandonedCartCleanupService> logger) : BackgroundService
+    TimeProvider timeProvider,
+    ILogger<ExpiredRefreshTokenSweeper> logger) : BackgroundService
 {
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
+    private readonly TimeProvider timeProvider = timeProvider;
+    private readonly ILogger<ExpiredRefreshTokenSweeper> logger = logger;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Run every 60 minutes perpetually
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(60));
+        using var timer = new PeriodicTimer(TimeSpan.FromHours(1), this.timeProvider);
 
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             try
             {
-                // CRITICAL: Spawn a local scope to resolve the Application DB Context
-                using var scope = scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+                // CRITICAL: BackgroundService is a singleton; IAppDbContext is scoped.
+                using var scope = this.scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
 
-                var cutoff = DateTimeOffset.UtcNow.AddHours(-48);
-                var abandoned = await db.Orders
-                    .Where(O => o.State == OrderState.Pending && o.CreatedAtUtc <= cutoff)
-                    .ToListAsync(stoppingToken);
+                var cutoff = this.timeProvider.GetUtcNow();
 
-                foreach (var order in abandoned)
-                {
-                    order.Cancel(); // Domain logic controls the mechanics
-                }
-
-                if (abandoned.Count > 0) await db.SaveChangesAsync(stoppingToken);
+                await context.RefreshTokens
+                    .Where(t => t.ExpiresOnUtc < cutoff)
+                    .ExecuteDeleteAsync(stoppingToken);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Background sweep failed.");
+                this.logger.LogError(ex, "Refresh token sweep failed.");
             }
         }
     }
 }
 ```
 
----
+Register with `services.AddHostedService<ExpiredRefreshTokenSweeper>();` in `AddInfrastructure`.
+Two rules: never resolve a scoped service in the constructor (create a scope per tick), and never
+let the loop escape without a `catch`, or one failure kills the service for the process lifetime.
+`AuditableEntityInterceptor` will fail to attribute changes here — `IUser.Id` is null outside a
+request; supply a system-user constant of your own if attribution matters.
 
-## 9. Proactive Discovery: External Integrations & IOptions Strategy
+### 15.2 Real-time push (SignalR)
 
-When communicating with external file writers, blob storage (AWS S3), or physical hard drives, we hide them behind abstractions like `IPdfGenerator`.
-
-When loading heavy settings files (`appsettings.json`), do NOT leak `IConfiguration` into your classes directly. We map configuration blocks into highly-typed POCOs (`AppSettings.cs`) and inject them via the `IOptions<T>` pattern.
+`Microsoft.AspNetCore.SignalR.Client` is already referenced by `Taxi.Client`; the server side would
+need `Microsoft.AspNetCore.SignalR` on the API. The hub is a dumb transport; the decision to notify
+belongs to Application.
 
 ```csharp
-public class AppSettings
+// Application declares the need
+// src/Taxi.Application/Common/Interfaces/IRideNotifier.cs
+public interface IRideNotifier
 {
-    public int CartExpirationMinutes { get; set; }
-    public string TaxServiceApiKey { get; set; } = string.Empty;
-    public string DefaultLanguage { get; set; } = Languages.Default;
-}
-
-// Injected into a Policy/Service using Options Pattern
-public class TaxCalculationPolicy(IOptions<AppSettings> options) : ITaxPolicy
-{
-    private readonly AppSettings _appSettings = options.Value;
-
-    public bool IsTaxRegionEnabled() => _appSettings.TaxServiceApiKey != string.Empty;
+    Task RideStateChangedAsync(Guid rideId, string state, CancellationToken ct);
 }
 ```
 
----
+```csharp
+// Infrastructure implements it
+// src/Taxi.Infrastructure/RealTime/RideHub.cs
+public sealed class RideHub : Hub;
 
-## 10. Anti-Patterns & "Code Smells" (The Rejection Criteria)
+// src/Taxi.Infrastructure/RealTime/SignalRRideNotifier.cs
+public sealed class SignalRRideNotifier(IHubContext<RideHub> hubContext) : IRideNotifier
+{
+    private readonly IHubContext<RideHub> hubContext = hubContext;
 
-The Infrastructure Layer's danger lies in its proximity to the actual underlying technology. Abuse here typically breaks the isolation of the whole application.
+    public Task RideStateChangedAsync(Guid rideId, string state, CancellationToken ct)
+        => this.hubContext.Clients.All.SendAsync("RideStateChanged", rideId, state, ct);
+}
+```
 
-### Immediate PR Rejection Checklist for the Infrastructure Layer
+`Program.cs` maps the endpoint (`app.MapHub<RideHub>("/hubs/rides")`); the caller is an
+`INotificationHandler<TDomainEvent>` in Application, not a command handler.
 
-1. 🚨 **Business Logic or Throwing Exceptions:**
-   - **The Wrong Way:** Executing `if(order.Total < 0) throw new ValidationException()` inside an EF Core Interceptor or `AppDbContext`.
-   - **Why it's rejected:** The Infrastructure layer is "dumb". It should assume all entities successfully reaching the `.Add()` phase have already been meticulously validated by the `Result<T>` flow in the Application and Domain layers.
-2. 🚨 **Identity Framework Bleed:**
-   - **The Wrong Way:** Making the Application Layer MediatR Handlers return `IdentityResult` or injecting `UserManager<AppUser>` directly into a `CreateCustomerCommandHandler`.
-   - **The Right Way:** The Infrastructure layer must wrap Identity responses directly into Domain `Result<T>` or `Error` structs via a proxy `IIdentityService`.
+### 15.3 Dapper for heavy reads
 
-3. 🚨 **API Presentation Logic:**
-   - **The Wrong Way:** Accessing `HttpContext.Request` directly from within a repository or service class.
-   - **Why it's rejected:** If the Application is invoked via a CLI tool, gRPC endpoint, or Background Task, there is no HTTP Context. The Architecture must decouple environment requests from database access. Utilize `IUser` context abstractions.
-
----
-
-## 11. Dependency Injection Registration
-
-The Infrastructure Layer owns an incredibly heavy configuration file (`DependencyInjection.cs`). This registers JWT defaults, EF Core contexts, Interceptors, Microsoft Identity pipelines, HybridCaching standards, and hooks up the exact real-world classes to the imaginary interfaces the Application Layer promised.
+Only if an EF Core projection is measurably too slow — measure first. Use **`NpgsqlConnection`**,
+never `SqlConnection`:
 
 ```csharp
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
-namespace Microsoft.Extensions.DependencyInjection;
-
-public static class DependencyInjection
+// src/Taxi.Application/Common/Interfaces/ISqlConnectionFactory.cs
+public interface ISqlConnectionFactory
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    Task<IEnumerable<T>> QueryAsync<T>(string sql, object? parameters = null, CancellationToken ct = default);
+}
+```
+
+```csharp
+// src/Taxi.Infrastructure/Data/NpgsqlConnectionFactory.cs
+public sealed class NpgsqlConnectionFactory(IConfiguration configuration) : ISqlConnectionFactory
+{
+    private readonly string connectionString =
+        configuration.GetConnectionString("DefaultConnection")!;
+
+    public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? parameters = null, CancellationToken ct = default)
     {
-        // 1. Core utilities
-        services.AddSingleton(TimeProvider.System);
-
-        // 2. The critical ISaveChangesInterceptor routing
-        services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
-
-        var connectionString = configuration.GetConnectionString("DefaultConnection")!;
-        services.AddDbContext<AppDbContext>((sp, options) =>
-        {
-            options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
-            options.UseNpgsql(connectionString);
-        });
-
-        // 3. Point the abstract IAppDbContext exactly to the concrete instance
-        services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
-
-        // 4. Configure concrete services mapping to abstractions
-        services.AddScoped<ITokenProvider, TokenProvider>();
-        services.AddTransient<IIdentityService, IdentityService>();
-        services.AddScoped<IPdfGenerator, PdfGenerator>();
-        services.AddScoped<IOrderNotifier, SignalROrderNotifier>();
-
-        // 5. Fire off the perpetual Background threads
-        services.AddHostedService<AbandonedCartCleanupService>();
-
-        return services;
+        await using var connection = new NpgsqlConnection(this.connectionString);
+        return await connection.QueryAsync<T>(new CommandDefinition(sql, parameters, cancellationToken: ct));
     }
 }
 ```
 
----
+Caveats: raw SQL bypasses the audit interceptor and domain events, so it is read-only territory;
+JSONB columns need `->>'En'` extraction by hand; and you now have two schema truths to keep in
+sync with migrations. Always parameterize — never interpolate into `sql`.
 
-## 12. Advanced Infrastructure Mechanics
+### 15.4 Outbox for reliable side effects
 
-### 12.1. Database Migrations & Seeding
-
-Enterprise applications must reliably apply database schemas and seed foundational data (like Administrator roles or initial configuration values) upon startup. However, placing `dbContext.Database.Migrate()` directly inside the `Program.cs` file of the API dramatically pollutes the Presentation boundary with Infrastructure concerns.
-
-**The Solution:**
-The Infrastructure layer provides an `ApplicationDbContextInitialiser` class. It separates schema migration (`InitialiseAsync`) from data insertion (`SeedAsync`). We then expose a clean extension method so the API layer can invoke this pipeline seamlessly.
-
-```csharp
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Identity;
-using MechanicShop.Domain.Identity;
-using Microsoft.Extensions.DependencyInjection;
-
-namespace MechanicShop.Infrastructure.Data;
-
-public class ApplicationDbContextInitialiser(
-    AppDbContext context,
-    UserManager<AppUser> userManager,
-    RoleManager<IdentityRole> roleManager)
-{
-    public async Task InitialiseAsync()
-    {
-        // During rapid development/migration phase:
-        await context.Database.EnsureDeletedAsync();
-
-        // Applies all pending migrations or creates the database if it doesn't exist
-        await context.Database.EnsureCreatedAsync();
-    }
-
-    public async Task SeedAsync()
-    {
-        // Default Roles
-        var adminRole = new IdentityRole("Admin");
-        if (roleManager.Roles.All(r => r.Name != adminRole.Name))
-        {
-            await roleManager.CreateAsync(adminRole);
-        }
-
-        // Default Users
-        var adminUser = new AppUser { Email = "admin@localhost", UserName = "admin@localhost" };
-        if (userManager.Users.All(u => u.Email != adminUser.Email))
-        {
-            await userManager.CreateAsync(adminUser, "Admin123!");
-            await userManager.AddToRolesAsync(adminUser, [adminRole.Name]);
-        }
-    }
-}
-
-// 1. The Extension Method hiding the complexity from Program.cs
-public static class InitialiserExtensions
-{
-    public static async Task InitialiseDatabaseAsync(this WebApplication app)
-    {
-        using var scope = app.Services.CreateScope();
-        var initialiser = scope.ServiceProvider.GetRequiredService<ApplicationDbContextInitialiser>();
-
-        await initialiser.InitialiseAsync();
-        await initialiser.SeedAsync();
-    }
-}
-```
-
-### 12.2. Refresh Token Mechanics
-
-While short-lived JWTs define stateless authorization, Enterprise architectures require Refresh Tokens to maintain persistent sessions without constantly prompting the user to log in.
-
-**The Mechanics:**
-Unlike JWTs, Refresh Tokens are completely opaque, mathematically random strings generated purely for database binding. The Infrastructure layer uses cryptographic random number generators to create them, stores them in the `RefreshToken` DbSet mapped to the user (Token Binding), and validates them later to reissue new Access Tokens.
-
-```csharp
-using System.Security.Cryptography;
-using MechanicShop.Domain.Identity;
-
-namespace MechanicShop.Infrastructure.Identity;
-
-public class TokenProvider : ITokenProvider
-{
-    public string GenerateRefreshToken()
-    {
-        // Generates an absolutely random, cryptographically secure 64-byte string
-        var randomNumber = new byte[64];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomNumber);
-        return Convert.ToBase64String(randomNumber);
-    }
-}
-
-// Inside IdentityService.cs during Login:
-// var refreshToken = tokenProvider.GenerateRefreshToken();
-// context.RefreshTokens.Add(new RefreshToken { UserId = user.Id, Token = refreshToken, ExpiresAt = DateTime.UtcNow.AddDays(7) });
-// await context.SaveChangesAsync();
-```
-
-### 12.3. The Repository Pattern Strategy
-
-You may have noticed the complete absence of `ICustomerRepository` or `IOrderRepository` directories. Clean Architecture does not strictly dictate _how_ an application reads or writes data, merely that it must be abstracted.
-
-**The Stance (DB Context as Unit of Work):**
-In this architecture, we strongly reject the "Generic Repository Pattern" (`Repository<T>`) when using Entity Framework Core. EF Core's `DbSet<T>` is _already_ an implementation of the Repository Pattern, and `AppDbContext` is _already_ an implementation of the Unit of Work pattern.
-
-Wrapping them merely creates useless boilerplate. Instead, the Application layer depends on the `IAppDbContext` interface.
-
-**The Strict Rule:**
-The Application Layer uses `IAppDbContext` to query and track entities natively. However, it must **never** leak database-specific extensions (like checking SQL Server error codes) into the handlers.
-
-### 12.4. High-Performance Read Queries (Micro-ORMs)
-
-When executing massive Query Handlers (e.g., generating end-of-year analytical reports), EF Core, even with `.AsNoTracking()`, can introduce unwanted memory allocation overhead during object projection.
-
-**The Strategy:**
-The Infrastructure layer is perfectly positioned to utilize parallel Micro-ORMs (like **Dapper**) purely for Queries, while keeping EF Core for Commands.
-
-By injecting an `ISqlConnectionFactory` interface, the Application layer can write raw, hyper-optimized SQL that Dapper maps directly into the read-only Contract DTOs, completely bypassing the Entity mapping layer.
-
-```csharp
-using Dapper;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
-using MechanicShop.Application.Common.Interfaces;
-
-namespace MechanicShop.Infrastructure.Data;
-
-// Fulfills the Application Layer's need to execute raw, high-speed queries
-public class SqlConnectionFactory(IConfiguration configuration) : ISqlConnectionFactory
-{
-    public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? parameters = null)
-    {
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-        await using var connection = new SqlConnection(connectionString);
-
-        return await connection.QueryAsync<T>(sql, parameters);
-    }
-}
-```
+If domain events must survive a crash, in-process `IMediator.Publish` after commit is not
+enough — the process can die between the commit and the publish. The standard fix is an
+`OutboxMessage` entity written in the **same transaction** as the
+business change, plus a `BackgroundService` (see Background jobs, above) that reads unprocessed
+rows and dispatches them. Worth it only when an external system must not miss an event.

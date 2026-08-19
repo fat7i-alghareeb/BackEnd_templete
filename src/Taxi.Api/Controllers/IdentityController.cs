@@ -3,10 +3,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Taxi.Application.Common.Interfaces;
+using Taxi.Application.Features.Identity.Commands.GenerateToken;
+using Taxi.Application.Features.Identity.Commands.RefreshToken;
 using Taxi.Application.Features.Identity.Dtos;
-using Taxi.Application.Features.Identity.Queries.GenerateTokens;
 using Taxi.Application.Features.Identity.Queries.GetUserInfo;
-using Taxi.Application.Features.Identity.Queries.RefreshTokens;
+using Taxi.Contracts.Requests.Identity;
 
 namespace Taxi.Api.Controllers;
 
@@ -19,9 +20,9 @@ public sealed class IdentityController(ISender sender, IUser currentUser) : ApiC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [EndpointName("GenerateToken")]
-    public async Task<IActionResult> GenerateToken([FromBody] GenerateTokenQuery query, CancellationToken ct)
+    public async Task<IActionResult> GenerateToken([FromBody] GenerateTokenRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(query, ct);
+        var result = await sender.Send(new GenerateTokenCommand(request.Email, request.Password), ct);
         return result.Match(this.Ok, this.Problem);
     }
 
@@ -29,9 +30,12 @@ public sealed class IdentityController(ISender sender, IUser currentUser) : ApiC
     [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [EndpointName("RefreshToken")]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenQuery query, CancellationToken ct)
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(query, ct);
+        var result = await sender.Send(
+            new RefreshTokenCommand(request.ExpiredAccessToken, request.RefreshToken),
+            ct);
+
         return result.Match(this.Ok, this.Problem);
     }
 

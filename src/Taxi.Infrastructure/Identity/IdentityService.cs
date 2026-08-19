@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 
+using Taxi.Application.Common;
+using Taxi.Application.Common.Errors;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Application.Features.Identity.Dtos;
+using Taxi.Contracts.Common;
 using Taxi.Domain.Common.Results;
 
 namespace Taxi.Infrastructure.Identity;
@@ -45,17 +48,23 @@ public class IdentityService(
 
         if (user is null)
         {
-            return Error.NotFound("User_Not_Found", $"User with email {UtilityService.MaskEmail(email)} not found");
+            return Error.NotFound(
+                LocalizationKeys.Auth.UserNotFound,
+                $"User with email {UtilityService.MaskEmail(email)} not found");
         }
 
         if (!user.EmailConfirmed)
         {
-            return Error.Conflict("Email_Not_Confirmed", $"email '{UtilityService.MaskEmail(email)}' not confirmed");
+            return Error.Conflict(
+                LocalizationKeys.Auth.EmailNotConfirmed,
+                $"Email '{UtilityService.MaskEmail(email)}' is not confirmed");
         }
 
         if (!await this.userManager.CheckPasswordAsync(user, password))
         {
-            return Error.Conflict("Invalid_Login_Attempt", "Email / Password are incorrect");
+            return Error.Conflict(
+                LocalizationKeys.Auth.InvalidLoginAttempt,
+                "Email / Password are incorrect");
         }
 
         return new AppUserDto(user.Id, user.Email!, await this.userManager.GetRolesAsync(user), await this.userManager.GetClaimsAsync(user));
@@ -63,7 +72,12 @@ public class IdentityService(
 
     public async Task<Result<AppUserDto>> GetUserByIdAsync(string userId)
     {
-        var user = await this.userManager.FindByIdAsync(userId) ?? throw new InvalidOperationException(nameof(userId));
+        var user = await this.userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return ApplicationErrors.UserNotFound;
+        }
 
         var roles = await this.userManager.GetRolesAsync(user);
 

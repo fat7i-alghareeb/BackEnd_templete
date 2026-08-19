@@ -1,620 +1,626 @@
-# 🏛️ Architectural Constitution: Application Layer Blueprint
+# Application Layer Blueprint — `Taxi.Application`
 
-## 1. Executive Summary & Layer Purpose
+> Start at [AGENTS.md](../../AGENTS.md) — it carries the rules and the add-a-feature
+> checklist. This file is the deep reference for the Application layer.
+> Map of all docs: [NAVIGATION.md](../../docs/NAVIGATION.md).
 
-The Application Layer is the central nervous system of our Clean Architecture. While the Domain Layer holds the timeless rules of the business, the Application Layer orchestrates the _use cases_ that execute those rules. It acts as the critical bridge separating the unpredictable external world (HTTP REST APIs, gRPC, user interfaces) from the purity of the Domain and the concrete implementations of the Infrastructure.
+Use cases. CQRS over MediatR, organised as vertical slices, with cross-cutting concerns pushed
+into pipeline behaviours.
 
-If a stakeholder says, "As a user, I want to cancel my order," the Application Layer is completely responsible for fetching the order from the database, calling the Domain's `Cancel()` method, dispatching emails, committing the database transaction, and returning a DTO response to the caller.
-
-### What is the exact role of this layer in Clean Architecture?
-
-The Application Layer dictates the flow of control. It implements the CQRS (Command Query Responsibility Segregation) pattern to heavily isolate data-mutating workflows (Commands) from data-retrieval workflows (Queries). It defines the interfaces (abstractions) that the Infrastructure Layer must implement, adhering to the Dependency Inversion Principle.
-
-### What are its primary responsibilities?
-
-1. **Use Case Execution:** Processing incoming Contracts (Requests), finding the correct business handler, and returning the correct Contracts (Responses).
-2. **Cross-Cutting Concerns:** Automatically executing global pipelines for Validation, Exception Handling, Performance Logging, and Caching before the flow ever hits the core business logic.
-3. **Abstractions:** Defining `IAppDbContext`, `IEmailService`, `ITokenProvider` and other interfaces that describe what the application _needs_ from external systems, without actually referencing those systems.
-4. **Transaction Boundaries:** Acting as the boundary where database `SaveChanges()` occur.
-
-### What is STRICTLY FORBIDDEN in this layer?
-
-- **Infrastructure Leakage:** Using `Microsoft.EntityFrameworkCore.SqlServer` or knowing anything about SQL dialects or Dapper configurations.
-- **HTTP / Presentation Leakage:** Returning `IActionResult`, `HttpResponseMessage`, or checking `HttpContext`. The Application Layer does not know it is hosted in a Web API or a Console App.
-- **Business Rules:** Containing logic like `if (balance < 0) return Error`. All decisions involving object states belong strictly inside the Domain Entities.
-- **Handlers must be kept "slim".** If a mapping takes more than 5 lines, extract it to a dedicated Mapper class.
-- **Bilingual Mapping**: Mapper methods (`ToDto()`) should be minimized. Prefer switch-based projections in Handlers to ensure SQL-side JSONB extraction. If a mapper is used, it must resolve correctly based on the current culture from `ILanguageContext`.
+Reference implementation: **`Features/Cars/`** — three commands, two queries, a DTO and a mapper.
 
 ---
 
-## 2. Directory Structure & Vertical Slice Architecture
+## 1. Purpose
 
-Our Application Layer completely shuns the traditional "layered" folder structure (e.g., throwing all commands into a `Commands` folder and all queries into a `Queries` folder). We utilize **Vertical Slice Architecture** mapped by Domain Aggregates. This ensures high cohesion—when a developer works on "Orders," all related commands, queries, validators, and mappers are physically grouped together.
+Orchestration, and nothing else. A handler fetches state, calls a domain method, persists, evicts
+cache, and maps to a DTO. The business rule itself lives in the entity; the HTTP concern lives in
+the API.
+
+This layer also **owns the interfaces** that Infrastructure implements (`IAppDbContext`,
+`IIdentityService`, `ITokenProvider`, `IUser`, `ILanguageContext`). That inversion is what lets
+Infrastructure be swapped without touching a use case.
+
+---
+
+## 2. Dependency rules
+
+**References:** `Taxi.Domain` (project); `FluentValidation.DependencyInjectionExtensions` and
+`Microsoft.EntityFrameworkCore` (packages). MediatR arrives transitively via Domain.
+
+- EF Core is referenced on purpose: `IAppDbContext` exposes `DbSet<T>`, and handlers use LINQ
+  operators like `FirstOrDefaultAsync` / `AsNoTracking`. **Provider-specific packages
+  (`Npgsql...`) must never appear here** — only the provider-agnostic core.
+- Contracts is reachable transitively (through Domain) and is used freely for
+  `LocalizationKeys` and `Languages`.
+
+**Referenced by:** `Taxi.Infrastructure`, `Taxi.Api`.
+
+**Never add:** `HttpContext`, `IActionResult`, `ControllerBase` · `Npgsql` or any provider ·
+a reference to Infrastructure or Api.
+
+---
+
+## 3. Directory structure
 
 ```text
-src/MechanicShop.Application/
+src/Taxi.Application/
 ├── Common/
 │   ├── Behaviours/
 │   │   ├── CachingBehavior.cs
-│   │   ├── LoggingBehavior.cs
+│   │   ├── LoggingBehaviour.cs
+│   │   ├── PerformanceBehaviour.cs
+│   │   ├── UnhandledExceptionBehaviour.cs
 │   │   └── ValidationBehavior.cs
+│   ├── Caching/
+│   │   └── CacheTags.cs
 │   ├── Errors/
 │   │   └── ApplicationErrors.cs
-│   └── Interfaces/    (The Abstractions layer must fulfill)
-│       ├── IAppDbContext.cs
-│       ├── ICachedQuery.cs
-│       └── IEmailNotifier.cs
+│   ├── Interfaces/
+│   │   ├── IAppDbContext.cs
+│   │   ├── ICachedQuery.cs
+│   │   ├── IIdentityService.cs
+│   │   ├── ILanguageContext.cs
+│   │   ├── ITokenProvider.cs
+│   │   └── IUser.cs
+│   └── UtilityService.cs            static helpers; not an abstraction, so not in Interfaces/
 ├── Features/
-│   ├── Customers/
+│   ├── Cars/
 │   │   ├── Commands/
-│   │   ├── Queries/
-│   │   ├── Dtos/
-│   │   └── Mappers/
-│   └── Orders/
+│   │   │   ├── CreateCar/{CreateCarCommand,CreateCarCommandHandler,CreateCarCommandValidator}.cs
+│   │   │   ├── UpdateCar/{UpdateCarCommand,UpdateCarCommandHandler,UpdateCarCommandValidator}.cs
+│   │   │   └── RemoveCar/{RemoveCarCommand,RemoveCarCommandHandler}.cs      ← no validator
+│   │   ├── Dtos/CarDto.cs
+│   │   ├── Mappers/CarMapper.cs
+│   │   └── Queries/
+│   │       ├── GetCarById/{GetCarByIdQuery,GetCarByIdQueryHandler,GetCarByIdQueryValidator}.cs
+│   │       └── GetCars/{GetCarsQuery,GetCarsQueryHandler}.cs
+│   └── Identity/
 │       ├── Commands/
-│       │   ├── CreateOrder/
-│       │   │   ├── CreateOrderCommand.cs
-│       │   │   ├── CreateOrderCommandHandler.cs
-│       │   │   └── CreateOrderCommandValidator.cs
-│       │   └── CancelOrder/
-│       ├── Queries/
-│       │   └── GetOrderById/
-│       │       ├── GetOrderByIdQuery.cs
-│       │       └── GetOrderByIdQueryHandler.cs
-│       ├── Dtos/
-│       │   └── OrderSummaryDto.cs
-│       └── Mappers/
-│           └── OrderMappers.cs
-└── DependencyInjection.cs
+│       │   ├── GenerateToken/{GenerateTokenCommand,…Handler,…Validator}.cs
+│       │   └── RefreshToken/{RefreshTokenCommand,…Handler,…Validator}.cs
+│       ├── Dtos/{AppUserDto,TokenResponse}.cs
+│       └── Queries/
+│           └── GetUserInfo/{GetUserByIdQuery,GetUserByIdQueryHandler}.cs
+├── DependencyInjection.cs
+└── Application_Layer_Blueprint.md
 ```
 
-### Detailed Breakdown of Directories
+Token issuance and refresh are **Commands**, not Queries, because both rotate the stored refresh
+token. `GetUserInfo` is a genuine read and stays a Query.
 
-- **`Common/Behaviours/`**: Houses the MediatR Pipeline Interceptors. These are the unsung heroes of the architecture.
-- **`Common/Interfaces/`**: Defines the rigorous contracts for external services (e.g., sending emails, making API calls, querying the DB) that the Infrastructure Layer must provide.
-- **`Features/[AggregateName]/[Operation]/`**: Every single use case (like `CreateOrder`) gets its own isolated folder. This minimizes merge conflicts, follows the Single Responsibility Principle, and makes navigation incredibly predictable.
+| Folder | Holds |
+|---|---|
+| `Common/Behaviours/` | MediatR pipeline behaviours + the request pre-processor. |
+| `Common/Caching/` | `CacheTags` — the canonical tag constants. |
+| `Common/Errors/` | `ApplicationErrors` — failures that belong to a use case, not an entity. |
+| `Common/Interfaces/` | Abstractions Infrastructure implements. |
+| `Features/<Plural>/` | One vertical slice per aggregate. |
+
+**A feature folder does not have to map to one entity.** `Features/Identity/` maps to no entity at
+all — it orchestrates `IIdentityService` and `ITokenProvider`. Group by *use case cluster*, not by
+table.
 
 ---
 
-## 3. CQRS Mechanics using MediatR
+## 4. CQRS shapes
 
-We strictly enforce Command Query Responsibility Segregation using the MediatR library. This means we have two completely distinct channels of data flow.
-
-### 3.1. Bilingual Language Projection (JSONB)
-
-To maximize database performance and satisfy the strict bilingual retrieval constraint, we utilize PostgreSQL JSONB path accessors directly in LINQ projections.
-
-**Mandatory Patterns:**
-
-1. **Current Language**: Handlers resolve the current culture via `ILanguageContext.Language`.
-2. **Ternary Projection**: Projections (`.Select()`) MUST use a ternary operator on the language (e.g., `lang == Languages.Ar ? x.Name.Ar : x.Name.En`). This allows EF Core to generate efficient `->>` JSONB SQL.
-3. **Logging Convention**: Handlers must emit a log entry with the `[Projection]` prefix showing exactly which language is being fetched.
-
-**Example Query Handler Projection:**
+### Command
 
 ```csharp
-public async Task<Result<List<CustomerDto>>> Handle(GetCustomersQuery request, CancellationToken ct)
-{
-    var lang = _languageContext.Language;
-    _logger.LogInformation("[Projection] Fetching Name.{Lang} from JSONB", lang);
+public record CreateCarCommand(
+    string Make, string Model, int Year, string DescriptionEn, string DescriptionAr)
+    : IRequest<Result<CarDto>>;
 
-    return await _context.Customers
-        .Select(c => new CustomerDto
-        {
-            Id = c.Id,
-            // EF Core translates this ternary into: c.Name->>'Ar' or c.Name->>'En'
-            Name = lang == Languages.Ar ? c.Name.Ar : c.Name.En
-        })
-        .ToListAsync(ct);
+public record UpdateCarCommand(Guid Id, ...) : IRequest<Result<Updated>>;
+
+public record RemoveCarCommand(Guid Id) : IRequest<Result<Deleted>>;
+```
+
+`record`, positional parameters, always `IRequest<Result<T>>`. When there is nothing meaningful to
+return, use the marker structs `Result<Updated>` / `Result<Deleted>` rather than inventing a
+response type.
+
+### Query
+
+```csharp
+public record GetCarByIdQuery(Guid Id) : ICachedQuery<Result<CarDto>>
+{
+    public string CacheKey => $"cars-{this.Id}";
+    public string[] Tags => [CacheTags.Cars];
+    public TimeSpan Expiration => TimeSpan.FromMinutes(10);
 }
 ```
 
-### Commands (Mutating Data)
-
-Commands alter the state of the system. They Create, Update, or Delete.
-Every Command maps exclusively to exactly one CommandHandler.
-
-- **The Interface:** `public record CreateOrderCommand(Guid ProductId, int Qty) : IRequest<Result<OrderDto>>;`
-
-### Queries (Retrieving Data)
-
-Queries explicitly return data and have absolutely zero side-effects. They never invoke `.Add()`, `.Update()`, or `.SaveChanges()`.
-
-- **The Interface:** `public record GetOrderByIdQuery(Guid Id) : IRequest<Result<OrderDto>>;`
-- **The Rule:** Queries can bypass loading full rich Domain Entities and execute highly optimized projection queries straight into DTOs using `.Select()` or raw SQL via Dapper if required in edge cases.
+An **uncached** query is `IRequest<Result<T>>` and drops the three members. `ICachedQuery<T>`
+already extends `IRequest<T>` — do not write both.
 
 ---
 
-## 4. Pipeline Behaviors (The Secret Sauce)
+## 5. Handlers
 
-Pipeline behaviors intercept every single Command and Query executing in our system. Because we utilize the Exceptionless `Result` pattern, our pipelines brilliantly circumvent exceptions entirely.
-
-### 4.1. ValidationBehavior (FluentValidation Integration)
-
-This behavior automatically grabs the incoming Command, locates the corresponding FluentValidation rules, and runs them. If the command violates a rule (e.g., "Email is invalid"), the behavior intercepts the request entirely, refusing to pass it to the handler, and instead converts the FluentValidation errors directly into our Domain `Error` struct, returning a failed `Result<T>`.
-
-**Line-by-Line Mechanics:**
+### Command handler
 
 ```csharp
-using MediatR;
-using FluentValidation;
-using ECommerce.Domain.Common.Results;
-using ECommerce.Domain.Common.Results.Abstractions;
-
-namespace ECommerce.Application.Common.Behaviours;
-
-// 1. We constrain the pipeline to requests returning our specific IResult abstraction
-public class ValidationBehavior<TRequest, TResponse>(IValidator<TRequest>? validator = null)
-    : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-        where TResponse : IResult
+public class CreateCarCommandHandler(
+    IAppDbContext context,
+    HybridCache cache,
+    ILanguageContext languageContext) : IRequestHandler<CreateCarCommand, Result<CarDto>>
 {
-    private readonly IValidator<TRequest>? _validator = validator;
+    private readonly IAppDbContext context = context;
+    private readonly HybridCache cache = cache;
+    private readonly ILanguageContext languageContext = languageContext;
+
+    public async Task<Result<CarDto>> Handle(CreateCarCommand request, CancellationToken cancellationToken)
+    {
+        var carResult = Car.Create(
+            Guid.NewGuid(), request.Make, request.Model, request.Year,
+            request.DescriptionEn, request.DescriptionAr);
+
+        if (carResult.IsError)
+        {
+            return carResult.Errors;
+        }
+
+        var car = carResult.Value;
+
+        this.context.Cars.Add(car);
+        await this.context.SaveChangesAsync(cancellationToken);
+        await this.cache.RemoveByTagAsync(CacheTags.Cars, cancellationToken);
+
+        return car.ToDto(this.languageContext.Language);
+    }
+}
+```
+
+The skeleton for a mutating handler, in order: **load or construct → check `IsError` and return
+`.Errors` → mutate → `SaveChangesAsync` → `RemoveByTagAsync` → map to DTO.**
+
+Update/Remove load first:
+
+```csharp
+var car = await this.context.Cars.FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+
+if (car is null)
+{
+    return CarErrors.NotFound;
+}
+```
+
+Note the primary-constructor-plus-`private readonly`-field style. It is redundant to the compiler
+but it is the house style; match it.
+
+### Query handler
+
+```csharp
+public class GetCarByIdQueryHandler(IAppDbContext context, ILanguageContext languageContext)
+    : IRequestHandler<GetCarByIdQuery, Result<CarDto>>
+{
+    public async Task<Result<CarDto>> Handle(GetCarByIdQuery request, CancellationToken cancellationToken)
+    {
+        var car = await this.context.Cars
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+
+        if (car is null)
+        {
+            return CarErrors.NotFound;
+        }
+
+        return car.ToDto(this.languageContext.Language);
+    }
+}
+```
+
+`.AsNoTracking()` on every query. Queries never call `Add` / `Remove` / `SaveChangesAsync`.
+
+---
+
+## 6. Validators
+
+```csharp
+public sealed class CreateCarCommandValidator : AbstractValidator<CreateCarCommand>
+{
+    public CreateCarCommandValidator()
+    {
+        RuleFor(x => x.Make)
+            .NotEmpty().WithMessage(LocalizationKeys.Validation.MakeRequired)
+            .MaximumLength(100);
+
+        RuleFor(x => x.Year)
+            .InclusiveBetween(1886, DateTime.UtcNow.Year + 2).WithMessage(LocalizationKeys.Validation.YearInvalid);
+    }
+}
+```
+
+- `sealed`, named `<UseCase>{Command|Query}Validator`, in the same folder as the command.
+- **`.WithMessage(...)` carries the localization key** — this codebase uses `WithMessage`, not
+  `WithErrorCode`, because `ValidationBehavior` reads `e.ErrorMessage` into `Error.Code`.
+- Registered automatically by `AddValidatorsFromAssembly`; never register one by hand.
+- **Optional.** `RemoveCarCommand` has none — `ValidationBehavior` accepts a null validator and
+  passes through. Skip the validator when a route constraint (`{id:guid}`) already guarantees the
+  input.
+- Validators are pure: no database access, no `SaveChanges`.
+
+Overlap with the domain guards in `Car.Create` is deliberate — see
+[AGENTS.md §4](../../AGENTS.md).
+
+---
+
+## 7. Pipeline behaviours
+
+Registered in `DependencyInjection.cs`; **registration order is execution order**, outermost first:
+
+```csharp
+services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+
+    cfg.AddOpenBehavior(typeof(UnhandledExceptionBehaviour<,>));
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+    cfg.AddOpenBehavior(typeof(PerformanceBehaviour<,>));
+    cfg.AddOpenBehavior(typeof(CachingBehavior<,>));
+
+    cfg.AddOpenRequestPreProcessor(typeof(LoggingBehaviour<>));
+});
+```
+
+```text
+RequestPreProcessorBehavior      ← MediatR's own, prepended; hosts LoggingBehaviour
+  └─ UnhandledExceptionBehaviour
+       └─ ValidationBehavior
+            └─ PerformanceBehaviour
+                 └─ CachingBehavior
+                      └─ Handler
+```
+
+| Behaviour | Applies to | Does |
+|---|---|---|
+| `UnhandledExceptionBehaviour` | all | `try/catch`, logs with the request payload, rethrows. Registered **first** so it wraps every other behaviour — anything registered before it would escape the catch. Does not convert exceptions to `Result`; `GlobalExceptionHandler` in the API produces the 500. |
+| `ValidationBehavior<TRequest,TResponse>` | `where TResponse : IResult` — so only requests returning `Result<T>` | Runs the injected `IValidator<TRequest>` if one exists; on failure maps each `ValidationFailure` to `Error.ValidationForProperty(e.PropertyName, e.ErrorMessage)` and returns `(dynamic)errors`, relying on `Result<T>`'s implicit `List<Error>` conversion. The handler never runs. |
+| `PerformanceBehaviour` | all | `Stopwatch`; logs a warning above 500 ms with request name, user id, user name and payload. Resolves the user name through `IIdentityService`, so it costs a database round-trip — but only on requests that are already slow. |
+| `CachingBehavior` | `ICachedQuery` only | Registered **last**, so it sits closest to the handler and a cache hit skips as little work as possible. See §8. |
+| `LoggingBehaviour<TRequest>` | all | **Not a pipeline behaviour** — an `IRequestPreProcessor<TRequest>`, hosted by MediatR's own `RequestPreProcessorBehavior`, which runs before everything. Logs request name, user id and payload. |
+
+Two ordering rules are load-bearing, and
+[`PipelineRegistrationTests`](../../tests/Taxi.Application.UnitTests/Common/PipelineRegistrationTests.cs)
+fails the build if either is broken:
+
+1. `UnhandledExceptionBehaviour` is outermost, so no other behaviour's exception goes unlogged.
+2. `ValidationBehavior` comes before `CachingBehavior`, so invalid input never reaches the cache.
+
+> ⚠️ **`AddOpenRequestPreProcessor` is required.** MediatR's `RegisterServicesFromAssembly` does
+> **not** discover open-generic `IRequestPreProcessor<>` implementations. Before that call was
+> added, `LoggingBehaviour` was registered nowhere and silently never ran. Remove the line and
+> request logging disappears with no error.
+
+---
+
+## 8. Caching
+
+```csharp
+public interface ICachedQuery
+{
+    string CacheKey { get; }
+    string[] Tags { get; }
+    TimeSpan Expiration { get; }
+    bool IsCultureAware => true;
+}
+
+public interface ICachedQuery<TResponse> : IRequest<TResponse>, ICachedQuery;
+```
+
+`CachingBehavior` flow:
+
+1. Not an `ICachedQuery`? → `await next(ct)`, done.
+2. Build the key: `IsCultureAware ? $"{CacheKey}_{languageContext.Language}" : CacheKey`.
+   This is what stops an Arabic response being served to an English caller.
+3. Probe with `GetOrCreateAsync` + `HybridCacheEntryFlags.DisableUnderlyingData` — a read-only
+   lookup that returns `null` on a miss instead of invoking a factory.
+4. On a miss: `await next(ct)`, then `SetAsync` **only if `result is IResult { IsSuccess: true }`**.
+   Failures are never cached, so a 404 does not stick for ten minutes.
+
+`HybridCache` itself is registered in `AddInfrastructure` (10-minute default expiration,
+30-second L1 window).
+
+### Invalidation is your job
+
+Tag-based, manual, and mandatory:
+
+```csharp
+// GetCarsQuery / GetCarByIdQuery
+public string[] Tags => [CacheTags.Cars];
+
+// CreateCar / UpdateCar / RemoveCar handlers
+await this.cache.RemoveByTagAsync(CacheTags.Cars, cancellationToken);
+```
+
+Always the [`CacheTags`](Common/Caching/CacheTags.cs) constant, never a literal — a typo silently
+disables eviction and produces a bug nobody notices for weeks.
+
+**Cache a query only when** it is read-heavy, staleness up to `Expiration` is acceptable, **and**
+every mutating command evicts its tag.
+
+`GetUserByIdQuery` is deliberately **not** cached for exactly that reason: it returns roles and
+claims, nothing evicts `CacheTags.UserInfo`, and serving a stale role set after a permission change
+is the wrong trade for an unmeasured saving. The constant stays defined for whenever a
+user-mutating command arrives — add the `RemoveByTagAsync` call at the same time you re-enable the
+cache, not after.
+
+### Does `Result<T>` survive the cache?
+
+Yes — verified, not assumed. `CachingBehavior` stores the whole `Result<TResponse>`, and
+`Result<TValue>`'s only public constructor is marked `[Obsolete(error: true)]`. That blocks
+compile-time use but not System.Text.Json's reflection, so the round trip works;
+[`ResultSerializationTests`](../../tests/Taxi.Application.UnitTests/Common/ResultSerializationTests.cs)
+pins it. Worth keeping pinned: a serialization break here surfaces as a 500 on the *second*
+request to a cached endpoint, which manual testing almost never catches.
+
+---
+
+## 9. DTOs and mappers
+
+```csharp
+// Features/Cars/Dtos/CarDto.cs
+public record CarDto(Guid Id, string Make, string Model, int Year, string Description);
+```
+
+```csharp
+// Features/Cars/Mappers/CarMapper.cs
+public static class CarMapper
+{
+    public static CarDto ToDto(this Car car, string language = Languages.Default)
+        => new(car.Id, car.Make, car.Model, car.Year,
+               language == Languages.Ar ? car.Description.Ar : car.Description.En);
+
+    public static List<CarDto> ToDto(this IEnumerable<Car> cars, string language = Languages.Default)
+        => cars.Select(c => c.ToDto(language)).ToList();
+}
+```
+
+- Positional `record`, one file per DTO, in the feature's `Dtos/` folder.
+- A DTO is flat: `LocalizedText Description` becomes a single resolved `string Description`.
+- Mapping is **manual extension methods** in `Mappers/`. No AutoMapper, no Mapster. Compile-time
+  safe, trivially debuggable, no startup cost.
+- Overload for the collection case rather than making callers write `.Select(...)`.
+- **Mapping happens in memory, after materialisation.** The handler loads the entity, then calls
+  `ToDto(language)`. There is no SQL-side JSONB projection in this codebase, and no
+  `[Projection]` logging convention. If you need one later, see §12.3.
+- Domain entities never leave this layer. `Result<Car>` is a compile error waiting to happen —
+  return `Result<CarDto>`.
+
+---
+
+## 10. Interfaces this layer owns
+
+| Interface | Implemented by | For |
+|---|---|---|
+| `IAppDbContext` | `AppDbContext` (Infrastructure) | `DbSet<Car>`, `DbSet<RefreshToken>`, `SaveChangesAsync` |
+| `IIdentityService` | `IdentityService` | Role checks, policy checks, authenticate, fetch user — wraps `UserManager<AppUser>` so Identity types never reach a handler |
+| `ITokenProvider` | `TokenProvider` | Issue a JWT + refresh token, read a principal from an expired token |
+| `IUser` | `CurrentUser` (**API layer**) | The current user id from the JWT |
+| `ILanguageContext` | `LanguageContext` (**API layer**) | The language resolved from `Accept-Language` |
+
+`IUser` and `ILanguageContext` are implemented in the **API** project, not Infrastructure, because
+both are HTTP-context concerns. They are registered in
+`Taxi.Api/DependencyInjection.AddIdentityInfrastructure()`. That is intentional: the Application
+layer states the need, and whichever host is running supplies it.
+
+`ApplicationErrors` holds failures owned by a use case rather than an entity
+(`ExpiredAccessTokenInvalid`, `RefreshTokenExpired`, `UserNotFound`, `TokenGenerationFailed`).
+Entity-specific failures belong in `<Entity>Errors` in the Domain.
+
+---
+
+## 11. Belongs / does not belong
+
+**Belongs:** commands, queries, handlers, validators, DTOs, mappers · pipeline behaviours ·
+interfaces for external capabilities · `ApplicationErrors` · orchestration across multiple
+aggregates.
+
+**Does not belong:** invariant enforcement (Domain) · `HttpContext` / `IActionResult` /
+status codes (API) · SQL, provider packages, migrations (Infrastructure) · returning entities ·
+`DependencyInjection` registrations for Infrastructure services.
+
+---
+
+## 12. Naming
+
+| Thing | Convention |
+|---|---|
+| Slice | `Features/<Plural>/` |
+| Use case folder | `Commands/<Verb><Entity>/` or `Queries/<Verb><Entity>/` |
+| Files | `<UseCase>Command.cs`, `<UseCase>CommandHandler.cs`, `<UseCase>CommandValidator.cs` |
+| Query files | `<UseCase>Query.cs`, `<UseCase>QueryHandler.cs`, `<UseCase>QueryValidator.cs` |
+| DTO | `<Entity>Dto`, positional `record` |
+| Mapper | `<Entity>Mapper`, `static class`, `ToDto` extensions |
+
+The Command/Query split is about **side effects, not HTTP verb**. Anything that writes is a
+`Command`, even if it is reached by `POST /api/token/generate` and feels like a read — issuing a
+token rotates the stored refresh token, so it lives in `Commands/GenerateToken/`.
+
+---
+
+## 13. Talking to other layers
+
+| Direction | How |
+|---|---|
+| **← API** | The controller builds a command/query and sends it through `ISender`. The Application layer never sees `HttpContext`. |
+| **→ Domain** | Handlers call `Entity.Create(...)` / `entity.Method(...)`, check `IsError`, and forward `.Errors` unchanged. Rules the entity cannot see (uniqueness, an external quote) are resolved in the handler and passed in as primitives. |
+| **→ Infrastructure** | Only through interfaces this layer declares. Application defines `IAppDbContext`; Infrastructure implements it. Never the reverse. |
+| **→ Contracts** | Reads `LocalizationKeys` and `Languages` (reachable transitively through Domain). Never references `Contracts/Requests` — mapping a request to a command happens in the controller. |
+| **→ API** | Returns `Result<T>`. `ProblemExtensions` in the API turns the `Error` into an HTTP status. |
+
+**Where does the implementation of a new interface go?** Infrastructure by default. The exception
+is anything that needs `HttpContext` — those live in **`Taxi.Api/Services/`**, which is why
+`IUser` → `CurrentUser` and `ILanguageContext` → `LanguageContext` are registered in
+`Taxi.Api/DependencyInjection.AddIdentityInfrastructure()` rather than `AddInfrastructure`. The
+Application layer states the need; whichever host is running supplies it.
+
+---
+
+## 14. Common mistakes
+
+| ❌ | ✅ |
+|---|---|
+| `IRequest<CarDto>` | `IRequest<Result<CarDto>>` |
+| `throw new NotFoundException()` | `return CarErrors.NotFound;` |
+| Query without `.AsNoTracking()` | Always `.AsNoTracking()` in query handlers |
+| Business rule inside the handler | Push it into the entity method |
+| `RemoveByTagAsync("car", ct)` | `RemoveByTagAsync(CacheTags.Cars, ct)` |
+| Cached query with no evicting command | Add the `RemoveByTagAsync` call |
+| `await context.Cars.FindAsync(id)` inside a `foreach` | Batch with a single `Where(x => ids.Contains(x.Id))` |
+| Injecting another handler | Send through `ISender`, or publish a domain event |
+| Returning `Result<Car>` | Return `Result<CarDto>` |
+| Naming a state-mutating request `...Query` | Name it `...Command` |
+| Registering a validator manually | `AddValidatorsFromAssembly` already did |
+| Adding an open-generic pre-processor and expecting the assembly scan to find it | Call `AddOpenRequestPreProcessor` explicitly |
+| Implementing an Application interface in Infrastructure when it needs `HttpContext` | Put it in `Taxi.Api/Services/` |
+
+---
+
+## 15. Future Extensions — NOT IMPLEMENTED
+
+> ⚠️ **None of the following exists in this repository.** Corrected sketches only.
+
+### 12.1 Authorization behaviour
+
+Today authorization is `[Authorize]` on controllers. If a rule ever needs to live with the use
+case rather than the endpoint (for example "only the owning driver may cancel this ride"), add a
+behaviour rather than scattering checks through handlers.
+
+```csharp
+// src/Taxi.Application/Common/Security/AuthorizeAttribute.cs
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+public sealed class AuthorizeAttribute : Attribute
+{
+    public string Roles { get; set; } = string.Empty;
+
+    public string Policy { get; set; } = string.Empty;
+}
+```
+
+```csharp
+// src/Taxi.Application/Common/Behaviours/AuthorizationBehavior.cs
+public class AuthorizationBehavior<TRequest, TResponse>(
+    IUser user,
+    IIdentityService identityService)
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+    where TResponse : IResult
+{
+    private readonly IUser user = user;
+    private readonly IIdentityService identityService = identityService;
 
     public async Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
         CancellationToken ct)
     {
-        // 2. If no validator exists for this specific command, proceed normally.
-        if (_validator is null)
+        var attributes = request.GetType()
+            .GetCustomAttributes<AuthorizeAttribute>(inherit: true)
+            .ToList();
+
+        if (attributes.Count == 0)
         {
             return await next(ct);
         }
 
-        // 3. Run complex application logic validation asynchronously.
-        var validationResult = await _validator.ValidateAsync(request, ct);
+        var userId = this.user.Id;
 
-        // 4. If everything is valid, allow the Handler to execute.
-        if (validationResult.IsValid)
+        if (string.IsNullOrEmpty(userId))
         {
-            return await next(ct);
+            return (dynamic)new List<Error> { ApplicationErrors.Unauthorized };
         }
 
-        // 5. Hard stop. Map FluentValidation errors strictly to Domain Errors.
-        // Property name is carried on Error.PropertyName so the API layer can build an
-        // RFC 7807 `errors` dictionary keyed by the offending field. Error.Code stays
-        // as the LocalizationKeys constant (set via .WithMessage(...) in the validator).
-        var errors = validationResult.Errors
-            .ConvertAll(e => Error.ValidationForProperty(
-                propertyName: e.PropertyName,    // e.g. "NameEn"
-                code: e.ErrorMessage));          // e.g. "Validation.EnglishName.Required"
-
-        // 6. DYNAMIC CASTING MAGIC: Because TResponse is constrained to IResult,
-        // and Result<T> has an implicit conversion operator from List<Error>,
-        // mapping via 'dynamic' safely triggers the struct initialization without throwing.
-        return (dynamic)errors;
-    }
-}
-```
-
-### 4.2. CachingBehavior (Modern HybridCache Integration)
-
-We utilize the modern ASP.NET Core `HybridCache` allowing for phenomenal performance utilizing both L1 Memory Caching and L2 Distributed Caching (Redis).
-
-Queries opt-in to caching simply by implementing an interface. No boilerplate required in the handlers!
-
-```csharp
-public interface ICachedQuery
-{
-    string CacheKey { get; }
-    TimeSpan? Expiration { get; }
-    IEnumerable<string>? Tags { get; }
-    bool IsCultureAware { get; } // Mandates cache partitioning by language
-}
-```
-
-**The Pipeline Execution:**
-
-```csharp
-public class CachingBehavior<TRequest, TResponse>(
-    HybridCache cache,
-    ILogger<CachingBehavior<TRequest, TResponse>> logger)
-    : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : notnull
-{
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
-    {
-        // 1. Is it a cacheable query? If not, execute immediately.
-        if (request is not ICachedQuery cachedRequest)
+        foreach (var attribute in attributes)
         {
-            return await next(ct);
-        }
-
-        // 2. Attempt to resolve from cache first to avoid database IO operations
-        var result = await cache.GetOrCreateAsync<TResponse>(
-            cachedRequest.CacheKey,
-            _ => new ValueTask<TResponse>((TResponse)(object)null!),
-            new HybridCacheEntryOptions { Flags = HybridCacheEntryFlags.DisableUnderlyingData },
-            cancellationToken: ct);
-
-        // 3. Cache Miss (or expired)? Run the database query.
-        if (result is null)
-        {
-            result = await next(ct); // Executes the actual QueryHandler
-
-            // 4. Only cache authentic successes, do NOT cache NotFound or Validation errors!
-            if (result is IResult res && res.IsSuccess)
+            if (!string.IsNullOrEmpty(attribute.Roles)
+                && !await this.identityService.IsInRoleAsync(userId, attribute.Roles))
             {
-                await cache.SetAsync(
-                    cachedRequest.CacheKey,
-                    result,
-                    new HybridCacheEntryOptions { Expiration = cachedRequest.Expiration },
-                    cachedRequest.Tags,
-                    ct);
+                return (dynamic)new List<Error> { ApplicationErrors.Forbidden };
+            }
+
+            if (!string.IsNullOrEmpty(attribute.Policy)
+                && !await this.identityService.AuthorizeAsync(userId, attribute.Policy))
+            {
+                return (dynamic)new List<Error> { ApplicationErrors.Forbidden };
             }
         }
 
-        return result;
-    }
-}
-```
-
----
-
-## 5. Command Handlers (Implementation & Rules)
-
-A Command Handler performs the core business choreography. Consider this the absolute "Right Way" template for a mutation use case.
-
-Notice how `Result<T>` dictates the control flow, totally abolishing `try/catch` and exception noise.
-
-```csharp
-using MediatR;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Logging;
-using ECommerce.Application.Common.Interfaces;
-using ECommerce.Domain.Orders;
-using ECommerce.Domain.Common.Results;
-
-namespace ECommerce.Application.Features.Orders.Commands.CreateOrder;
-
-// 1. Command Definition maps primitive inputs to the Expected Result Dto
-public sealed record CreateOrderCommand(
-    Guid CustomerId,
-    List<CreateOrderLineItemDto> Items) : IRequest<Result<OrderDto>>;
-
-// 2. Handler isolates the execution. Dependencies injected via Primary Constructors.
-public class CreateOrderCommandHandler(
-    ILogger<CreateOrderCommandHandler> logger,
-    IAppDbContext context,
-    HybridCache cache
-    ) : IRequestHandler<CreateOrderCommand, Result<OrderDto>>
-{
-    public async Task<Result<OrderDto>> Handle(CreateOrderCommand command, CancellationToken ct)
-    {
-        // 3. Pre-flight check via Infrastructure (Database).
-        // The Application Layer queries the database state; it does not assume it.
-        var customerExists = await context.Customers.AnyAsync(c => c.Id == command.CustomerId, ct);
-
-        if (!customerExists)
-        {
-            logger.LogWarning("Customer {Id} not found.", command.CustomerId);
-            // 4. Early out using a standard Error, preventing Exceptions.
-            return ApplicationErrors.NotFound("Customer", command.CustomerId);
-        }
-
-        // 5. Construct necessary Domain dependencies (in memory mapping)
-        List<OrderLineItem> lineItems = [];
-        foreach (var itemDto in command.Items)
-        {
-            var itemResult = OrderLineItem.Create(Guid.NewGuid(), itemDto.ProductId, itemDto.Quantity);
-
-            // 6. Bubble up core Domain validation failures instantly
-            if (itemResult.IsError) return itemResult.Errors;
-
-            lineItems.Add(itemResult.Value);
-        }
-
-        // 7. Core execution delegating entirely to the rich Aggregate Root Factory
-        var createResult = Order.Create(
-            Guid.NewGuid(),
-            command.CustomerId,
-            DateTimeOffset.UtcNow,
-            lineItems);
-
-        if (createResult.IsError) return createResult.Errors;
-
-        var order = createResult.Value;
-
-        // 8. Add to the ORM DbSet (in memory tracking).
-        context.Orders.Add(order);
-
-        // 9. Flush to Database via Transaction.
-        // THIS is where the magic happens. Infrastructure intercepts this SaveChanges()
-        // call, hunts down any Domain Events inside the 'order' Aggregate, and dispatches them!
-        await context.SaveChangesAsync(ct);
-
-        // 10. Cache Invalidation. Tag-based eviction kills the whole associated list cache.
-        await cache.RemoveByTagAsync("orders-list", ct);
-
-        logger.LogInformation("Order successfully processed. Order ID: {OrderId}", order.Id);
-
-        // 11. Final output converted to Boundary DTO.
-        return order.ToDto();
-    }
-}
-```
-
----
-
-## 6. Query Handlers (Implementation & Rules)
-
-Queries are brutally fast. They do not load state for the sake of making logic choices; they selectively retrieve data columns for read-only projection into user interfaces.
-
-```csharp
-using MediatR;
-using Microsoft.EntityFrameworkCore;
-using ECommerce.Application.Common.Interfaces;
-using ECommerce.Domain.Common.Results;
-
-namespace ECommerce.Application.Features.Orders.Queries.GetOrderById;
-
-// 1. Opt-in to caching via the ICachedQuery interface trivially
-public sealed record GetOrderByIdQuery(Guid Id) : IRequest<Result<OrderDto>>, ICachedQuery
-{
-    public string CacheKey => $"query-order-{Id}";
-    public TimeSpan? Expiration => TimeSpan.FromMinutes(10);
-    public IEnumerable<string>? Tags => ["order-single"];
-}
-
-public class GetOrderByIdQueryHandler(IAppDbContext context)
-    : IRequestHandler<GetOrderByIdQuery, Result<OrderDto>>
-{
-    public async Task<Result<OrderDto>> Handle(GetOrderByIdQuery request, CancellationToken ct)
-    {
-        // 2. CRITICAL RULE: Queries must use .AsNoTracking() immediately.
-        // We do not want Entity Framework memory bloat for read-only outputs.
-        var orderDto = await context.Orders
-            .AsNoTracking()
-            .Where(o => o.Id == request.Id)
-            .Select(o => new OrderDto(o.Id, o.CustomerId, o.TotalAmount, o.State.ToString()))
-            .FirstOrDefaultAsync(ct);
-
-        if (orderDto is null)
-        {
-            return ApplicationErrors.NotFound("Order", request.Id);
-        }
-
-        return orderDto;
-    }
-}
-```
-
----
-
-## 7. Validation Strategies (FluentValidation Rules)
-
-While `System.ComponentModel.DataAnnotations` handles basic regex and empty fields inside the Contracts Layer, **FluentValidation** dominates the Application Layer. Why? Because FluentValidation allows complex, multi-property checks, asynchronous logic, and strict separation of rules from the DTO properties.
-
-```csharp
-using FluentValidation;
-using ECommerce.Application.Features.Orders.Commands.CreateOrder;
-
-namespace ECommerce.Application.Features.Orders.Commands.CreateOrder;
-
-// Placed directly alongside the Command file in the same folder.
-public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
-{
-    public CreateOrderCommandValidator()
-    {
-        RuleFor(x => x.CustomerId)
-            .NotEmpty()
-            .WithErrorCode(LocalizationKeys.Validation.RequiredField)
-            .WithMessage("Customer identification is strictly required.");
-
-        RuleFor(x => x.Items)
-            .NotEmpty()
-            .WithErrorCode(LocalizationKeys.Validation.RequiredField)
-            .WithMessage("An order must contain at least one line item.");
-
-        RuleForEach(x => x.Items).ChildRules(items =>
-        {
-            items.RuleFor(i => i.ProductId)
-                .NotEmpty()
-                .WithErrorCode(LocalizationKeys.Validation.RequiredField);
-
-            items.RuleFor(i => i.Quantity)
-                .GreaterThan(0)
-                .WithErrorCode(LocalizationKeys.Validation.InvalidFormat)
-                .WithMessage("Quantity must be positive.");
-        });
-    }
-}
-```
-
----
-
-## 8. Mapping & DTO Transformations
-
-To maintain an unpolluted Domain, mapping logic belongs directly in the Application feature slices. We prefer simple Extension Methods (`ToDto()`) ensuring compile-time safety and lightning-fast execution over reflection-heavy libraries like AutoMapper, unless the mappings become unsustainably large.
-
-```csharp
-namespace ECommerce.Application.Features.Orders.Mappers;
-
-public static class OrderMappers
-{
-    // A pure extension mapping separating internal entities from outward boundaries
-    public static OrderDto ToDto(this Order order)
-    {
-        return new OrderDto(
-            order.Id,
-            order.CustomerId,
-            order.TotalAmount,
-            order.State.ToString(),
-            order.LineItems.Select(x => new OrderLineItemDto(x.ProductId, x.Quantity)).ToList()
-        );
-    }
-}
-```
-
----
-
-## 9. Anti-Patterns & "Code Smells" (The Rejection Criteria)
-
-If you attempt to leak responsibilities inside the Application Layer, your code will fail rigorous architecture reviews. Monitor carefully for these "Code Smells."
-
-### Immediate PR Rejection Checklist for the Application Layer
-
-1. 🚨 **Database Calls inside Loops:**
-   - **The Wrong Way:** `foreach (var item in command.Items) { var product = await _context.Products.FindAsync(item.ProductId); }`
-   - **Why it's rejected:** The N+1 Query problem decimates performance.
-   - **The Right Way:** Query the products cleanly via an `IN` clause prior to the loop: `var products = await _context.Products.Where(p => prodIds.Contains(p.Id)).ToListAsync();`
-
-2. 🚨 **Direct SaveChanges inside Validation rules:**
-   - **The Wrong Way:** Executing database transactions or saves inside an `IValidator<T>` definition.
-   - **Why it's rejected:** Validation pipelines are not meant for asynchronous data mutation. Validators observe state, they do not change it.
-
-3. 🚨 **Calling other Command Handlers directly:**
-   - **The Wrong Way:** Injecting `CreateUserCommandHandler` into `CreateOrderCommandHandler` to execute logic.
-   - **Why it's rejected:** Bypasses MediatR pipelines entirely and tightly couples features.
-   - **The Right Way:** Publish a Domain Event (e.g., `OrderProcessedEvent`) during `SaveChanges()` to organically trigger separate logic asynchronously.
-
-4. 🚨 **Failing to use `.AsNoTracking()` in Queries:**
-   - **The Wrong Way:** `await _context.Orders.ToListAsync();` inside a `GetOrdersQueryHandler`.
-   - **Why it's rejected:** Entity Framework builds heavy change-tracking proxy graphs. Queries never mutate data, thereby making tracking memory-bloat useless.
-
-5. 🚨 **Returning Raw Entities from Commands/Queries:**
-   - **The Wrong Way:** `public record CreateOrderCommand() : IRequest<Result<Order>>;`
-   - **Why it's rejected:** The Application Layer's job is mapping out to DTOs. Returning an `Order` Domain Entity passes your highly complex internal state model outward, forcing the caller (the API) to become tightly coupled to your Database ORM schema.
-
----
-
-## 10. Registration & Dependency Injection Setup
-
-The `DependencyInjection.cs` file at the root of the Application project configures its massive capabilities gracefully within a single extension method. It registers MediatR, configures the executing assembly for automatic Handler discovery, injects the behaviors systematically, and attaches FluentValidation.
-
-```csharp
-using System.Reflection;
-using FluentValidation;
-using Microsoft.Extensions.DependencyInjection;
-using ECommerce.Application.Common.Behaviours;
-
-namespace Microsoft.Extensions.DependencyInjection;
-
-public static class DependencyInjection
-{
-    public static IServiceCollection AddApplication(this IServiceCollection services)
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-
-        // Automatically scans the assembly and registers every single IValidator<T>
-        services.AddValidatorsFromAssembly(assembly);
-
-        // Configures MediatR routing and applies pipeline filters
-        services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssembly(assembly);
-
-            // ORDER MATTERS!
-            // 1. Log errors immediately.
-            cfg.AddOpenBehavior(typeof(UnhandledExceptionBehaviour<,>));
-            // 2. Perform Validation. Reject before processing.
-            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
-            // 3. If Valid, grab from Cache if available.
-            cfg.AddOpenBehavior(typeof(CachingBehavior<,>));
-            // 4. Log stopwatch time taken to execute the eventual Handler.
-            cfg.AddOpenBehavior(typeof(PerformanceBehaviour<,>));
-        });
-
-        return services;
-    }
-}
-```
-
-The Application Layer remains completely pure of ASP.NET constructs. The outer web API host will simply invoke `builder.Services.AddApplication();` to consume this entire, fully armed system.
-
----
-
-## 11. Advanced Application Mechanics
-
-### 11.1. Domain Event Handlers (The Side-Effects Engine)
-
-A strict rule of CQRS is that a Command Handler should execute exactly one primary database mutation. If you find your `CreateOrderCommandHandler` also attempting to send a confirmation email, ping a third-party CRM, and write to a message bus, you are violating the Single Responsibility Principle and drastically slowing down the database transaction.
-
-**The Solution:**
-The Domain entity raises an `INotification` (e.g., `OrderCancelledEvent`). Once `_context.SaveChangesAsync()` successfully commits, MediatR automatically publishes these events. The Application Layer implements standalone Handlers to react to these events asynchronously.
-
-```csharp
-using MediatR;
-using ECommerce.Domain.Orders.Events;
-using ECommerce.Application.Common.Interfaces;
-
-namespace ECommerce.Application.Features.Orders.EventHandlers;
-
-// 1. Listens for the INotification emitted by the Domain Layer.
-// Multiple handlers can safely listen to the exact same event.
-public class OrderCancelledEventHandler(
-    IEmailNotifier emailNotifier,
-    ILogger<OrderCancelledEventHandler> logger)
-    : INotificationHandler<OrderCancelledEvent>
-{
-    public async Task Handle(OrderCancelledEvent notification, CancellationToken ct)
-    {
-        logger.LogInformation("Domain Event Received: Order {OrderId} was cancelled.", notification.OrderId);
-
-        // 2. Execute the side-effect via an Infrastructure Abstraction.
-        // This keeps our core Command Handler extremely fast and pure!
-        await emailNotifier.SendOrderCancellationEmailAsync(notification.OrderId, ct);
-    }
-}
-```
-
-### 11.2. Authorization Pipeline Behavior
-
-Do not scatter `if (!user.IsAdmin) return Error.Unauthorized();` checks inside every single Command Handler. Keep your Handlers focused purely on business orchestration by intercepting authorization via a MediatR Pipeline Behavior.
-
-**The Strategy:**
-
-1. Create a custom `[Authorize(Roles = "Admin")]` attribute and place it natively on your `IRequest` (Command).
-2. Create an `AuthorizationBehavior` that uses reflection to find these attributes on the incoming request.
-3. If an attribute exists, utilize the `IIdentityService` (an abstraction resolved via Infrastructure) to verify claims.
-
-```csharp
-using MediatR;
-using System.Reflection;
-using ECommerce.Domain.Common.Results;
-using ECommerce.Application.Common.Interfaces;
-
-namespace ECommerce.Application.Common.Behaviours;
-
-public class AuthorizationBehavior<TRequest, TResponse>(
-    IIdentityService identityService)quest, TResponse>(
-    IIdentityService identityService)
-    : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
-    where TResponse : IResult
-{
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
-    {
-        var authAttributes = request.GetType().GetCustomAttributes<AuthorizeAttribute>(true);
-
-        if (authAttributes.Any())
-        {
-            // Abstraction representing the decoded JWT / Claims from HttpContext
-            var currentUserId = identityService.GetCurrentUserId();
-
-            if (currentUserId == null)
-            {
-                // Returns an immediate Domain Error, aborting the pipeline
-                return (dynamic)ApplicationErrors.Unauthorized();
-            }
-
-            foreach (var attribute in authAttributes)
-            {
-                if (!string.IsNullOrEmpty(attribute.Roles))
-                {
-                    bool inRole = await identityService.IsInRoleAsync(currentUserId.Value, attribute.Roles);
-                    if (!inRole)
-                    {
-                        return (dynamic)ApplicationErrors.Forbidden();
-                    }
-                }
-            }
-        }
-
-        // Authorization passed (or wasn't required), proceed to Validation or Caching.
         return await next(ct);
     }
 }
 ```
+
+Points the old version of this document got wrong and this one fixes: `next` takes the
+`CancellationToken` in MediatR 14; the user id comes from `IUser` (`IIdentityService` has no
+`GetCurrentUserId`); `IsInRoleAsync`/`AuthorizeAsync` are the real signatures; and the
+`(dynamic)` cast needs a `List<Error>`, since `Result<T>`'s implicit operator is defined for the
+list, not for a bare `Error`, in the generic context.
+
+You would also need to add `Unauthorized` and `Forbidden` to `ApplicationErrors` with matching
+`LocalizationKeys`, and register the behaviour **before** `ValidationBehavior` (fail auth before
+spending effort on validation).
+
+### 12.2 Domain event handlers
+
+The dispatch side already works (`AppDbContext.SaveChangesAsync` publishes through `IMediator`).
+Once a concrete `DomainEvent` exists (see the Domain blueprint), the handler goes here:
+
+```csharp
+// src/Taxi.Application/Features/Cars/EventHandlers/CarRetiredEventHandler.cs
+public class CarRetiredEventHandler(
+    HybridCache cache,
+    ILogger<CarRetiredEventHandler> logger)
+    : INotificationHandler<CarRetiredEvent>
+{
+    private readonly HybridCache cache = cache;
+    private readonly ILogger<CarRetiredEventHandler> logger = logger;
+
+    public async Task Handle(CarRetiredEvent notification, CancellationToken ct)
+    {
+        this.logger.LogInformation("Car {CarId} retired.", notification.CarId);
+        await this.cache.RemoveByTagAsync(CacheTags.Cars, ct);
+    }
+}
+```
+
+MediatR's assembly scan registers it. Convention: `Features/<Plural>/EventHandlers/<Event>Handler.cs`.
+
+Know the semantics before relying on it: dispatch happens **before** the commit, so a throwing
+handler aborts the save and a handler cannot assume the data is durable. For side effects that
+must only run after a successful commit (emails, webhooks), either move dispatch to
+`SavedChangesAsync` in an interceptor or queue an outbox row.
+
+### 12.3 SQL-side bilingual projection
+
+Current mapping materialises the entity then picks a language in memory. For a large list endpoint
+that becomes wasteful — both JSONB values cross the wire. EF Core can push the choice into SQL:
+
+```csharp
+var language = this.languageContext.Language;
+
+var cars = await this.context.Cars
+    .AsNoTracking()
+    .Select(c => new CarDto(
+        c.Id,
+        c.Make,
+        c.Model,
+        c.Year,
+        language == Languages.Ar ? c.Description.Ar : c.Description.En))
+    .ToListAsync(cancellationToken);
+```
+
+Npgsql translates the owned-JSON member access into a `->>` extraction. Verify the generated SQL
+before adopting it (Serilog logs EF commands at Information level) — if it evaluates client-side
+you have gained nothing. If you switch, do it for every list endpoint at once so there is one
+convention, and keep `CarMapper` for the single-entity case where the difference is irrelevant.
+
+### 12.4 Transactions across several `SaveChanges`
+
+Every handler today performs exactly one `SaveChangesAsync`, which EF Core already wraps in a
+transaction. If a use case ever needs two saves atomically, do **not** add a transaction behaviour
+to the whole pipeline — take the transaction explicitly in that one handler via
+`IAppDbContext`'s underlying `DbContext.Database.BeginTransactionAsync()`, which would require
+widening the interface. Prefer restructuring so one save suffices.

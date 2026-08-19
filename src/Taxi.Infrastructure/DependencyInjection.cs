@@ -27,6 +27,7 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(connectionString);
 
         services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
+        services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
 
         services.AddDbContext<AppDbContext>((sp, options) =>
         {

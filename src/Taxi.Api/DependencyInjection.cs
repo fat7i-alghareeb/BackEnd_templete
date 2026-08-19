@@ -12,6 +12,10 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+
 using Serilog;
 
 using Taxi.Api;
@@ -35,11 +39,11 @@ public static class DependencyInjection
                 .AddControllerWithJsonConfiguration()
                 .AddValidation()
                 .AddIdentityInfrastructure()
-                .AddAppOutputCaching()
                 .AddAppLocalization()
                 .AddConfiguredCors(configuration)
                 .AddAppRateLimiting()
                 .AddAppForwardedHeaders(configuration, environment)
+                .AddObservability()
                 .AddApiDocumentation();
 
         return services;
@@ -131,19 +135,6 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IServiceCollection AddAppOutputCaching(this IServiceCollection services)
-    {
-        services.AddOutputCache(options =>
-        {
-            options.SizeLimit = 100 * 1024 * 1024; // 100 mb
-            options.AddBasePolicy(policy => policy
-                .Expire(TimeSpan.FromSeconds(60))
-                .SetVaryByHeader("Accept-Language"));
-        });
-
-        return services;
-    }
-
     public static IServiceCollection AddCustomProblemDetails(this IServiceCollection services)
     {
         services.AddProblemDetails(options => options.CustomizeProblemDetails = (context) =>
@@ -169,6 +160,31 @@ public static class DependencyInjection
             options.GroupNameFormat = "'v'VVV";
             options.SubstituteApiVersionInUrl = true;
         });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Traces and metrics via OpenTelemetry. The OTLP exporter reads its endpoint and protocol
+    /// from the standard OTEL_EXPORTER_OTLP_* environment variables, which docker-compose already
+    /// sets to the Seq ingest endpoint. Metrics are exposed for Prometheus by
+    /// MapPrometheusScrapingEndpoint in Program.cs.
+    /// </summary>
+    /// <returns>The service collection, for chaining.</returns>
+    public static IServiceCollection AddObservability(this IServiceCollection services)
+    {
+        services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource.AddService(
+                serviceName: "Taxi.Api",
+                serviceVersion: typeof(IAssemblyMarker).Assembly.GetName().Version?.ToString()))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddOtlpExporter())
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddPrometheusExporter());
 
         return services;
     }
@@ -348,7 +364,6 @@ public static class DependencyInjection
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseOutputCache();
 
         return app;
     }

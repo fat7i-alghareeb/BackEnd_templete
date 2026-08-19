@@ -8,6 +8,9 @@ services:
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=TaxiDb;Username=postgres;Password=YourStrong@Password1
       OTEL_EXPORTER_OTLP_ENDPOINT: http://seq:5341/ingest/otlp/v1/traces
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      # appsettings.Development.json points the Seq sink at localhost for `dotnet run`;
+      # inside compose it must reach the container by service name.
+      Serilog__WriteTo__2__Args__serverUrl: http://seq:5341
     restart: on-failure
 
   postgres:

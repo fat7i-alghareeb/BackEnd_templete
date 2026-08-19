@@ -8,19 +8,19 @@ using Taxi.Domain.Common;
 
 public class AuditableEntityInterceptor(IUser user, TimeProvider dateTime) : SaveChangesInterceptor
 {
-    private readonly IUser _user = user;
-    private readonly TimeProvider _dateTime = dateTime;
+    private readonly IUser user = user;
+    private readonly TimeProvider dateTime = dateTime;
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
-        UpdateEntities(eventData.Context);
+        this.UpdateEntities(eventData.Context);
 
         return base.SavingChanges(eventData, result);
     }
 
     public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
     {
-        UpdateEntities(eventData.Context);
+        this.UpdateEntities(eventData.Context);
 
         return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
@@ -34,32 +34,32 @@ public class AuditableEntityInterceptor(IUser user, TimeProvider dateTime) : Sav
 
         foreach (var entry in context.ChangeTracker.Entries<AuditableEntity>())
         {
+            // HasChangedOwnedEntities matters: editing only a LocalizedText leaves the
+            // owner Unchanged, and without it LastModifiedUtc would never move.
             if (entry.State is EntityState.Added or EntityState.Modified || entry.HasChangedOwnedEntities())
             {
-                var utcNow = _dateTime.GetUtcNow();
+                var utcNow = this.dateTime.GetUtcNow();
 
                 if (entry.State == EntityState.Added)
                 {
-                    entry.Entity.CreatedBy = _user.Id;
+                    entry.Entity.CreatedBy = this.user.Id;
                     entry.Entity.CreatedAtUtc = utcNow;
                 }
 
-                entry.Entity.LastModifiedBy = _user.Id;
+                entry.Entity.LastModifiedBy = this.user.Id;
                 entry.Entity.LastModifiedUtc = utcNow;
 
                 foreach (var ownedEntry in entry.References)
                 {
-                    // if (ownedEntry.TargetEntry != null &&
-                    // ownedEntry.TargetEntry.Entity is AuditableEntity ownedEntity)
                     if (ownedEntry.TargetEntry is { Entity: AuditableEntity ownedEntity } && ownedEntry.TargetEntry.State is EntityState.Added or EntityState.Modified)
                     {
                         if (ownedEntry.TargetEntry.State == EntityState.Added)
                         {
-                            ownedEntity.CreatedBy = _user.Id;
+                            ownedEntity.CreatedBy = this.user.Id;
                             ownedEntity.CreatedAtUtc = utcNow;
                         }
 
-                        ownedEntity.LastModifiedBy = _user.Id;
+                        ownedEntity.LastModifiedBy = this.user.Id;
                         ownedEntity.LastModifiedUtc = utcNow;
                     }
                 }

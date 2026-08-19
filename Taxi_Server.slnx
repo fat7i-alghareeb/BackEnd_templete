@@ -12,8 +12,8 @@
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
     <File Path="docker-compose.yml" />
-    <File Path="Dockerfile" />
     <File Path="README.md" />
+    <File Path="AGENTS.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Taxi.Api/Taxi.Api.csproj" />
@@ -22,5 +22,9 @@
     <Project Path="src/Taxi.Contracts/Taxi.Contracts.csproj" />
     <Project Path="src/Taxi.Domain/Taxi.Domain.csproj" />
     <Project Path="src/Taxi.Infrastructure/Taxi.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Taxi.Application.UnitTests/Taxi.Application.UnitTests.csproj" />
+    <Project Path="tests/Taxi.Domain.UnitTests/Taxi.Domain.UnitTests.csproj" />
   </Folder>
 </Solution>

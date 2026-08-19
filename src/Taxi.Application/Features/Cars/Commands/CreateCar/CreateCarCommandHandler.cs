@@ -2,6 +2,7 @@ namespace Taxi.Application.Features.Cars.Commands.CreateCar;
 
 using MediatR;
 using Microsoft.Extensions.Caching.Hybrid;
+using Taxi.Application.Common.Caching;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Application.Features.Cars.Dtos;
 using Taxi.Application.Features.Cars.Mappers;
@@ -38,7 +39,7 @@ public class CreateCarCommandHandler(
 
         await this.context.SaveChangesAsync(cancellationToken);
 
-        await this.cache.RemoveByTagAsync("car", cancellationToken);
+        await this.cache.RemoveByTagAsync(CacheTags.Cars, cancellationToken);
 
         return car.ToDto(this.languageContext.Language);
     }

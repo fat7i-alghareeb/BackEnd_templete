@@ -39,7 +39,7 @@ public sealed class CarsController(ISender sender) : ApiController
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CarDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [EndpointName("CreateCar")]
     [MapToApiVersion("1.0")]
@@ -55,7 +55,7 @@ public sealed class CarsController(ISender sender) : ApiController
             ct);
 
         return result.Match(
-            id => this.CreatedAtAction(nameof(this.GetCar), new { version = "1.0", id }, id),
+            car => this.CreatedAtAction(nameof(this.GetCar), new { version = "1.0", id = car.Id }, car),
             this.Problem);
     }
 

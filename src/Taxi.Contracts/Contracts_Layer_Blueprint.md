@@ -1,285 +1,331 @@
-# 🏛️ Architectural Constitution: Contracts Layer Blueprint
+# Contracts Layer Blueprint — `Taxi.Contracts`
 
-## 1. Executive Summary & Layer Purpose
+> Start at [AGENTS.md](../../AGENTS.md) — it carries the rules and the add-a-feature
+> checklist. This file is the deep reference for the Contracts layer.
+> Map of all docs: [NAVIGATION.md](../../docs/NAVIGATION.md).
 
-The Contracts Layer acts as the absolute boundary and communication protocol between the outside world and the inner workings of our software. In a Clean Architecture solution, the Contracts Layer defines the exact shape of data entering the system (Requests) and leaving the system (Responses). It provides a rigidly structured, highly predictable API surface that clients (web apps, mobile apps, other microservices) can depend on without needing to understand the underlying Domain or Application complexities.
+The shared vocabulary. Inbound request shapes, the localization key registry, the language
+registry, and enums that more than one layer needs.
 
-When a frontend developer or external consumer integrates with the system, they should only ever look at the Contracts Layer. This layer serves as the "System Schema."
-
-### What is the exact role of this layer in Clean Architecture?
-
-The primary role of the Contracts Layer is to provide strongly-typed Data Transfer Objects (DTOs) that decouple external communication from internal domain modeling. Data entering from an HTTP request or a message queue is immediately bound to a Contract DTO. Only after this DTO is received are the fields mapped to Application Layer commands or Domain entities. Conversely, when the system returns data, internal models are flattened into Response DTOs before serialization to the client.
-
-For example, a `Customer` Domain Entity might have private fields, behavioral methods, and event dispatchers. Passing this raw entity out to a client exposes internal secrets and tightly couples the API to the database schema. Instead, the `Customer` is mapped to a `CustomerResponse` contract, which is safe to serialize.
-
-### What are its primary responsibilities?
-
-1. **Defining Requests:** Establishing exact requirements for inbound data payloads (e.g., `CreateOrderRequest`, `UpdateUserProfileRequest`).
-2. **Defining Responses:** Shaping how data is returned to the client in a secure, flattened, and optimized format (e.g., `OrderSummaryResponse`, `PaginatedListResponse`).
-3. **Surface-Level Validation:** Applying initial, low-level property validation (e.g., maximum string lengths, email regex formats, required fields) using pure `System.ComponentModel.DataAnnotations`.
-4. **Providing Shared Primitives:** Hosting enumerations (e.g., `OrderState`, `InvoiceStatus`) that need to be shared between the API, Domain, and external Clients.
-5. **Hosting Localization Keys:** Serving as the central registry for `LocalizationKeys`, ensuring that the API, Domain, and Blazor Client use the exact same strongly-typed keys for all user-facing messages.
-
-### What is STRICTLY FORBIDDEN in this layer?
-
-- **Business Logic:** There must be absolutely no business rule enforcement here. No checking database state, no calculating totals, and no domain invariant checks.
-- **Complex Dependencies:** The Contracts layer must be the lightest project in the entire solution. It should have **zero** NuGet package dependencies except for fundamental validation attributes (`Microsoft.AspNetCore.Components.DataAnnotations.Validation` if necessary in newer .NET frameworks).
-- **Domain Leakage:** Contracts must never reference Domain Aggregates or Application Command structures. It must be completely ignorant of the system's inner rings.
-- **Behavior/Methods:** DTOs are "dumb" records. They should not contain functions, constructors with logic, or behavioral properties. They only hold state.
+Reference implementation: **`Requests/Cars/CreateCarRequest.cs`** and
+**`Common/LocalizationKeys.cs`**.
 
 ---
 
-## 2. Dependency Rules & Boundaries
+## 1. Purpose
 
-In clean architecture, the Contracts layer sits at a unique intersection. It operates at the outermost edge alongside the API layer, yet it is dependency-free like the Domain layer.
+Two jobs, and they are less alike than they look:
 
-### Inward Pointing Dependencies
+1. **Wire contracts** — the exact JSON shape the API accepts, with surface-level
+   `DataAnnotations` so malformed payloads are rejected before MediatR ever runs.
+2. **The shared registry** — `LocalizationKeys` and `Languages`. These are not DTOs; they are
+   constants that Domain, Application, API and Client all need to agree on. Because Contracts is
+   the only project every one of them can reference, it hosts them.
 
-**The Contracts Layer points to nothing.** In a strictly enforced project, the Contracts project has no project references. It stands entirely alone. This allows it to be aggressively shared (e.g., packaged as a NuGet or built into a generic library) and consumed by external clients (like a Blazor WebAssembly app or a separate .NET MAUI mobile client) without dragging heavy internal logic or ORM packages over the wire.
-
-### Outward Pointing Dependencies
-
-Because the Contracts Layer defines the communication vocabulary, other layers must reference it:
-
-- **The API / Presentation Layer** references Contracts to bind HTTP JSON bodies to Request objects and to serialize returned data into Response objects.
-- **The Application Layer** (Optional but common) often references Contracts to use the primitive Requests when mapping to Commands or returning Queries, avoiding an extra intermediate DTO mapping layer, although strictest Clean Architectures may map Contracts directly in the API controllers.
+Job 2 is why `Taxi.Domain` references this project.
 
 ---
 
-## 3. Directory Structure & Anatomy
+## 2. Dependency rules
 
-The Contracts directory structure directly aligns with the features or conceptual Aggregates of the system.
+**References:** no projects. One package,
+`Microsoft.AspNetCore.Components.DataAnnotations.Validation` (for `[ValidateComplexType]` on
+nested request objects).
+
+**Referenced by:** `Taxi.Domain`, `Taxi.Api`, `Taxi.Client`. (`Taxi.Application` gets it
+transitively through Domain and uses `LocalizationKeys` and `Languages` freely.)
+
+This project must stay the lightest in the solution — it is compiled into the WebAssembly client's
+download. Adding a project reference or a heavy package here is a rejection.
+
+**Never add:** a reference to Domain, Application, Infrastructure or Api · EF Core · MediatR ·
+FluentValidation · methods on DTOs · anything `async`.
+
+---
+
+## 3. Directory structure
 
 ```text
-src/MechanicShop.Contracts/
+src/Taxi.Contracts/
 ├── Common/
-│   ├── LocalizationKeys.cs  <-- Strongly-Typed Error/UI Keys
-│   ├── Languages.cs         <-- Canonical Language Codes (en, ar)
-│   ├── OrderState.cs
-│   ├── PaymentMethod.cs
-│   └── CountryCode.cs
+│   ├── Languages.cs
+│   └── LocalizationKeys.cs
 ├── Requests/
-│   ├── Customers/
-│   │   ├── CreateCustomerRequest.cs
-│   │   └── UpdateCustomerRequest.cs
-│   └── Orders/
-│       ├── CreateOrderRequest.cs
-│       ├── CreateOrderLineItemRequest.cs
-│       └── CancelOrderRequest.cs
-└── Responses/
-    ├── Common/
-    │   └── PagedResponse.cs
-    ├── Customers/
-    │   └── CustomerSummaryResponse.cs
-    └── Orders/
-        ├── OrderDetailsResponse.cs
-        └── OrderLineItemResponse.cs
+│   ├── Cars/
+│   │   ├── CreateCarRequest.cs
+│   │   └── UpdateCarRequest.cs
+│   └── Identity/
+│       ├── GenerateTokenRequest.cs
+│       └── RefreshTokenRequest.cs
+└── Contracts_Layer_Blueprint.md
 ```
 
-### Detailed Breakdown of Directories
+| Folder | Holds |
+|---|---|
+| `Common/` | `LocalizationKeys`, `Languages`, shared enums. One type per file. |
+| `Requests/<Plural>/` | One class per inbound payload, named `<UseCase>Request`. |
 
-- **`Common/`**: Contains shared data structures and Enumerations that dictate system states (e.g., `OrderState`). Storing Enums here ensures that a strongly-typed web client can use the exact same Enums as the backend Domain.
-- **`Requests/`**: A rigidly categorized folder structure holding all inbound payload definitions. Every controller action that expects a body should have a corresponding `[Action]Request` class here. Grouped by aggregate/feature.
-- **`Responses/`**: Holds all outbound payload definitions. These are optimized for the client’s screen or data needs, fully decoupled from the internal database schema.
-
----
-
-## 4. Core Design Patterns & Mechanics
-
-### 4.1. The Dumb DTO Pattern
-
-A Contract object is a genuine Data Transfer Object. It requires no complex instantiation, no immutable builders, and no behavior. In modern C#, these are typically modeled as `class` with `get; set;` properties, or `record` types if immutability after binding is desired.
-
-### 4.2. Surface Validation Strategy (DataAnnotations)
-
-While complex business validation (e.g., "Is this invoice strictly paid before shipping?") belongs in the Application and Domain layers, **surface-level validation** (e.g., "Is the email field actually formatted like an email?", "Is the name missing?", "Is the string over 500 characters?") belongs perfectly in the Contracts layer.
-
-We use `System.ComponentModel.DataAnnotations` (like `[Required]`, `[EmailAddress]`, `[MaxLength]`) directly on Request properties. This allows the API framework (ASP.NET Core) to instantly reject malformed payloads with a 400 Bad Request before the request even hits the Application layer, saving compute cycles.
-
-### 4.3. The Composition Approach (Avoiding Inheritance)
-
-Contracts should avoid deep inheritance hierarchies. An API payload should be readable top-to-bottom. If a `CreateOrderRequest` needs shipping details, it should compose a `ShippingDetailsRequest` property rather than inheriting from a complex base class. Flat, composed structures serialize and deserialize reliably and predictably.
+Every file here is live — each request type is bound by a controller action, and every
+`LocalizationKeys` constant resolves in both `SharedResource` files. There is no `Responses/`
+folder: outbound shapes are Application DTOs. See §6.
 
 ---
 
-## 5. Localization & Strongly-Typed Keys
-
-The Contracts layer hosts the `LocalizationKeys` class. This is the **Supreme Dictionary** of the system.
-
-- **No Magic Strings**: Every error message, validation rule, and UI label that requires translation MUST have a constant in `LocalizationKeys`.
-- **Languages Registry**: The `Languages` class defines the supported culture codes (`En`, `Ar`). All layers must use `Languages.Ar` / `Languages.En` instead of raw "ar" / "en" strings.
-- **Cross-Layer Parity**: Because the Blazor Client and the API both reference the Contracts layer, they use the exact same keys and language constants.
-- **Shared Resources**: Every key in `LocalizationKeys` MUST have a matching entry in `SharedResource.en.json` and `SharedResource.ar.json`.
-- **DataAnnotation Integration**: Validation attributes such as `[Required(ErrorMessage = LocalizationKeys.Validation.EnglishNameRequired)]` are picked up at runtime by the API's `InvalidModelStateResponseFactory` (registered in `MechanicShop.Api/DependencyInjection.cs` `AddValidation()`) and translated through the same `IStringLocalizer<SharedResource>` used by FluentValidation and domain errors. The `ErrorMessage` value IS the localization key — never a raw English string.
-
----
-
-## 6. Implementation Guidelines & Code Examples
-
-Adhere to absolute simplicity when crafting Contracts.
-
-### The "Right Way" Example: Inbound Request Structure
+## 4. Request DTOs
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
-using ECommerce.Contracts.Common;
+using Taxi.Contracts.Common;
 
-namespace ECommerce.Contracts.Requests.Orders;
+namespace Taxi.Contracts.Requests.Cars;
 
-// Note: A simple class with primitive properties and embedded objects.
-public class CreateOrderRequest
+public class CreateCarRequest
 {
-    [Required(ErrorMessage = "The CustomerId parameter is mandatory.")]
-    public Guid CustomerId { get; set; }
+    [Required(ErrorMessage = LocalizationKeys.Validation.MakeRequired)]
+    [StringLength(100)]
+    public string Make { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "At least one item must be submitted for the order.")]
-    [MinLength(1, ErrorMessage = "At least one item must be submitted for the order.")]
-    [ValidateComplexType] // Ensures nested objects run their own DataAnnotations
-    public List<CreateOrderLineItemRequest> LineItems { get; set; } = [];
+    [Required(ErrorMessage = LocalizationKeys.Validation.ModelRequired)]
+    [StringLength(100)]
+    public string Model { get; set; } = string.Empty;
 
-    // Enums are native to the Contracts project, allowing strict strongly-typed payloads
-    public PaymentMethod PreferredPaymentMethod { get; set; }
-}
+    [Required(ErrorMessage = LocalizationKeys.Validation.YearInvalid)]
+    public int Year { get; set; }
 
-public class CreateOrderLineItemRequest
-{
-    [Required]
-    public Guid ProductId { get; set; }
+    [Required(ErrorMessage = LocalizationKeys.Validation.DescriptionRequired)]
+    [StringLength(1000)]
+    public string DescriptionEn { get; set; } = string.Empty;
 
-    [Range(1, 999, ErrorMessage = "Quantity must be between 1 and 999.")]
-    public int Quantity { get; set; }
+    [Required(ErrorMessage = LocalizationKeys.Validation.DescriptionRequired)]
+    [StringLength(1000)]
+    public string DescriptionAr { get; set; } = string.Empty;
 }
 ```
 
-### The "Right Way" Example: Outbound Response Structure
+Everything that matters here:
 
-Responses never use DataAnnotations, as the internal system emits them, and we trust our internal data to be valid. Responses often flatten complex domain graphs into simple structures needed by the View.
+- **`class` with `get; set;`**, not `record`. Model binding wants settable properties, and requests
+  are mutable by nature.
+- **Non-nullable strings default to `string.Empty`** so nullable analysis stays quiet.
+- **`ErrorMessage` is a localization key, never English.**
+  `InvalidModelStateResponseFactory` (registered in `Taxi.Api/DependencyInjection.cs`
+  `AddValidation()`) treats the message as a key and looks it up in `SharedResource.{culture}.json`.
+  Writing prose there produces an untranslated response.
+- **Bilingual fields arrive flat** (`DescriptionEn` / `DescriptionAr`) and are combined into a
+  `LocalizedText` inside the domain factory. The request never carries a nested object for this.
+- `UpdateCarRequest` includes its own `Id`. `CarsController.UpdateCar` compares it to the route id
+  and returns 400 if they disagree.
+
+Nested objects need `[ValidateComplexType]` on the parent property, or their annotations are not
+evaluated. That is the only reason the DataAnnotations.Validation package is referenced.
+
+---
+
+## 5. The registries
+
+### `LocalizationKeys`
 
 ```csharp
-using ECommerce.Contracts.Common;
+public static class LocalizationKeys
+{
+    public static class Car
+    {
+        public const string IdRequired = "Car.Id.Required";
+        public const string MakeRequired = "Car.Make.Required";
+        // ...
+    }
 
-namespace ECommerce.Contracts.Responses.Orders;
+    public static class Auth { ... }
 
-// Using 'record' types for Responses is highly encouraged in C# due to
-// value equality reporting and the intent of being a read-only projection
-public record OrderDetailsResponse(
-    Guid Id,
-    Guid CustomerId,
-    string CustomerFullName,      // Flattened from Customer aggregate
-    string CheckoutEmail,         // Flattened from ValueObject wrapper
-    DateTimeOffset PlacedAtUtc,
-    OrderState State,
-    decimal TotalAmount,          // Computed value exposed as primitive
-    List<OrderLineItemResponse> Items
-);
+    public static class RefreshToken { ... }
 
-public record OrderLineItemResponse(
-    Guid ProductId,
-    string ProductName,
-    int Quantity,
-    decimal UnitPrice,
-    decimal LineTotal
-);
+    public static class Validation { ... }
+}
 ```
 
----
+- Nested `static class` per area. Constant name is PascalCase; the value is dotted
+  `Area.Field.Condition`.
+- `Car`, `RefreshToken`, `Auth` hold entity- and flow-specific keys. `Validation` holds generic,
+  reusable ones (`RequiredField`, `EmailInvalid`, `PageSizeInvalid`).
+- **Every key must have an entry in both** `src/Taxi.Api/Resources/SharedResource.en.json` **and**
+  `SharedResource.ar.json`. A key present in only one language silently falls back to the English
+  `Error.Description` for the other, and logs a warning in Development only.
+- The reverse also holds: a resource entry with no `LocalizationKeys` constant is dead weight.
+  Both files currently carry exactly 23 keys, and every one has a constant behind it.
 
-## 7. Anti-Patterns & "Code Smells" (The Rejection Criteria)
-
-PR submissions altering the Contracts Layer will be rigorously scrutinized. The following practices mandate an instant rejection.
-
-### Immediate PR Rejection Checklist for the Contracts Layer
-
-1. 🚨 **Domain Imports (The Ultimate Sin):**
-   - **The Wrong Way:** `using ECommerce.Domain.Orders;` inside a Contract file.
-   - **Why it's rejected:** The Contracts layer must be distributed to external web/mobile clients. If a Contract references a Domain class, the client must pull down the entire Domain project containing all proprietary business logic.
-   - **The Right Way:** Contracts rely purely on .NET Base Class Library primitives (`string`, `int`, `Guid`, `DateTime`).
-
-2. 🚨 **Business Logic / Calculations in DTOs:**
-   - **The Wrong Way:** Adding a method `public decimal CalculateTax() { return TotalAmount * 0.05m; }` to a `Response`.
-   - **Why it's rejected:** The client shouldn't rely on logic executed during serialization. This logic strictly belongs in the Domain.
-   - **The Right Way:** Compute tax inside the Domain aggregate, store it mathematically, and just map it directly to a flat `decimal TaxAmount` property in the Response.
-
-3. 🚨 **Complex Validation (FluentValidation) in Contracts:**
-   - **The Wrong Way:** Implementing a system checking if "ProductId exists in database" inside the Contracts project.
-   - **Why it's rejected:** The Contracts project cannot connect to a database or use MediatR.
-   - **The Right Way:** Use basic `[Required]` or `[MaxLength]` DataAnnotations in Contracts. Perform complex database/business validation using FluentValidation behaviors in the **Application Layer**.
-
-4. 🚨 **Massive, Monolithic Enumerations:**
-   - **The Wrong Way:** Storing fifty different, unrelated enumerations inside a single `Constants.cs` contract file.
-   - **The Right Way:** Isolate enums contextually (e.g., `OrderState.cs`, `PaymentMethod.cs` in the `Contracts/Common` block).
-
----
-
-## 8. Registration & Dependency Injection
-
-Because the Contracts Layer simply defines vocabulary (classes, records, and enums) using system primitives, it executes no underlying functionality.
-
-**There is no Dependency Injection configuration for this Layer.**
-
-You will never register a service, interface, or lifetime scoped context in the Contracts project because it performs zero actions. It is a dictionary defining the language of the application boundary.
-
----
-
-## 9. Advanced Contract Mechanics
-
-### 8.1. Strict Mapping Rules (The Circular Dependency Trap)
-
-A common mistake made by developers transitioning to Clean Architecture is placing mapping methods (e.g., `.ToDomain()` or `.FromCommand()`) directly inside the Contract DTOs.
-
-**Why is this strictly forbidden?**
-If a `CreateOrderRequest` object contains a method `public CreateOrderCommand ToCommand()`, then the `Contracts` project must hold a physical assembly reference to the `Application` project (where `CreateOrderCommand` lives). Conversely, the `Application` project needs to reference the `Contracts` project if it intends to return a `Response` DTO directly. This creates a fatal **Circular Dependency** and tightly couples the external schema to the internal behavior.
-
-**The Right Way:**
-Contract DTOs must remain purely anemic. The conversion of a `CreateOrderRequest` into a `CreateOrderCommand` (or a `Customer` into a `CustomerResponse`) must happen exactly at the boundary—usually within the **API / Presentation Layer** (in the controller) or within the **Application Layer** (using a tool like Mapster, AutoMapper, or manual mapping functions).
-
-### 8.2. Standardized Wrappers & Pagination
-
-Returning raw JSON arrays (e.g., `[ { "id": 1 }, { "id": 2 } ]`) from list endpoints is a massive architectural anti-pattern. It abruptly halts future extensibility. If a mobile app expects an array, and you later need to return total page counts or status metadata, you will break the mobile app's deserializer by changing the root JSON structure to an object.
-
-**The Right Way:**
-Always wrap collection responses in a standardized paging envelope from day one.
+### `Languages`
 
 ```csharp
-namespace ECommerce.Contracts.Responses.Common;
-
-public record PagedResponse<T>
+public static class Languages
 {
-    // The actual array of data payload
-    public IEnumerable<T> Items { get; init; } = Enumerable.Empty<T>();
-
-    // Pagination metadata
-    public int PageNumber { get; init; }
-    public int PageSize { get; init; }
-    public int TotalPages { get; init; }
-    public int TotalRecords { get; init; }
-
-    // Extensibility markers
-    public bool HasNextPage => PageNumber < TotalPages;
-    public bool HasPreviousPage => PageNumber > 1;
+    public const string En = "en";
+    public const string Ar = "ar";
+    public const string Default = En;
+    public static readonly string[] All = [En, Ar];
 }
-
-// Usage Example:
-// return new PagedResponse<OrderSummaryResponse> { Items = orders, TotalRecords = 1500, ... };
 ```
 
-### 8.3. Contract Versioning Strategy
+Used by `UseRequestLocalization`, `LanguageContext`, `CarMapper`, `AppSettings.DefaultLanguage`
+and `AcceptLanguageOperationTransformer`. **Never write the literal `"en"` or `"ar"`.**
 
-APIs inevitably evolve, and external clients (especially iOS/Android apps installed on user devices) cannot be updated instantaneously. To prevent breaking existing clients, the schema must be versioned.
+Adding a language: add the constant, extend `All`, extend `LocalizedText`, add the resource file,
+and update every mapper's language switch.
 
-**How does this affect the Contracts layer?**
-Versioning dictates the directory structure. Instead of infinitely bolting optional properties onto `CreateCustomerRequest`, you physically separate the contracts into designated namespace folders representing the API version.
+---
+
+## 6. There is no `Responses/` folder
+
+Outbound shapes are **Application DTOs**. The Car endpoints return `CarDto` — a record in
+`Features/Cars/Dtos/` — straight out of `result.Match(this.Ok, this.Problem)`.
+
+So the convention is:
+
+> **Inbound** shapes come from `Contracts/Requests`. **Outbound** shapes are Application DTOs.
+
+That is a legitimate choice (one fewer mapping hop, and the DTO is already decoupled from the
+entity), but it does mean the API's response schema is owned by the Application layer, and
+`Taxi.Client` cannot see it — the client references Contracts only.
+
+If you want responses to flow through Contracts instead, do it as a deliberate, whole-surface
+change; see §11.1. Do not do it for one endpoint, leaving the codebase with two conventions.
+
+---
+
+## 7. Belongs / does not belong
+
+**Belongs:** request DTOs with `DataAnnotations` · `LocalizationKeys` · `Languages` · enums shared
+across layers · response DTOs and paging envelopes **if** the Future Extensions change is adopted.
+
+**Does not belong:** business logic or calculated properties · methods of any kind, including
+`ToCommand()` — that would force a reference to Application and create a cycle · validation that
+needs the database · references to Domain entities · anything requiring DI (this project has no
+`DependencyInjection.cs` and must not gain one).
+
+---
+
+## 8. Naming
+
+| Thing | Convention | Example |
+|---|---|---|
+| Request | `<UseCase>Request`, `class` | `CreateCarRequest`, `UpdateCarRequest` |
+| Response | `<Thing>Response`, `record` — only if Future Extensions is adopted | `CarResponse` |
+| Folder | plural aggregate name | `Requests/Cars/` |
+| Key constant | PascalCase condition | `MakeRequired` |
+| Key value | `Area.Field.Condition` | `"Car.Make.Required"` |
+| Enum | singular, one per file | e.g. `CarCategory` |
+
+---
+
+## 9. Talking to other layers
+
+Contracts references nothing, so every relationship is inbound:
+
+| Layer | Uses Contracts for |
+|---|---|
+| **Api** | Binds `[FromBody]` request types; resolves `ErrorMessage` keys through `IStringLocalizer<SharedResource>`; feeds `Languages.All` to `UseRequestLocalization` and the OpenAPI `Accept-Language` transformer |
+| **Domain** | `LocalizationKeys` for `<Entity>Errors` codes — the reason `Taxi.Domain` references this project at all |
+| **Application** | `LocalizationKeys` in validators, `Languages` in mappers. Reaches them transitively through Domain |
+| **Infrastructure** | `LocalizationKeys` in `IdentityService`; `Languages.Default` in `AppSettings` |
+| **Client** | Its only project reference — request shapes and both registries, so browser and server cannot drift on a property name or a key |
+
+The one rule that makes this work: **Contracts never references back.** A `ToCommand()` method on
+a request would force `Contracts → Application` and create a cycle, which is why request→command
+mapping is written by hand in the controller.
+
+A key added here is not finished until it also exists in `src/Taxi.Api/Resources/SharedResource.en.json`
+**and** `.ar.json`. Nothing in the build enforces that; a missing key degrades silently to the
+English `Error.Description`.
+
+---
+
+## 10. Common mistakes
+
+| ❌ | ✅ |
+|---|---|
+| `[Required(ErrorMessage = "Make is required")]` | `[Required(ErrorMessage = LocalizationKeys.Validation.MakeRequired)]` |
+| Adding a key without touching the resource files | Add to `LocalizationKeys` + `SharedResource.en.json` + `SharedResource.ar.json` |
+| `public CreateCarCommand ToCommand()` on a request | Map in the controller by hand |
+| `using Taxi.Domain.Cars;` in a contract | Contracts see BCL primitives and their own enums only |
+| `if (culture == "ar")` | `if (culture == Languages.Ar)` |
+| Putting a FluentValidation validator here | Validators live beside the command in Application |
+| `public record CreateCarRequest(...)` | `class` with `get; set;` — positional records bind poorly |
+| Adding a request with no controller binding it | Build the endpoint in the same change, or do not add the contract |
+
+---
+
+## 11. Future Extensions — NOT IMPLEMENTED
+
+> ⚠️ **None of the following is wired up today.** Sketches only, corrected for this stack.
+
+### 11.1 Making `Responses/` real
+
+If the response schema should belong to Contracts (so `Taxi.Client` can deserialize into shared
+types), the change is:
+
+1. Define `Contracts/Responses/Cars/CarResponse.cs` mirroring `CarDto`.
+2. Map at the **controller**, not the handler — the handler keeps returning `CarDto`, the
+   controller projects it. This keeps `Taxi.Application` free of any Contracts response reference
+   and avoids a second mapping concern inside handlers.
+3. Update `[ProducesResponseType(typeof(CarResponse), ...)]`.
+4. Do it for every endpoint at once.
+
+Weigh it honestly: it buys a client-visible schema and costs a mapping layer. With the client
+currently an empty shell, returning `CarDto` directly is the reasonable status quo.
+
+### 11.2 Paging envelope
+
+Nothing paginates today. When the first paged endpoint arrives you will need three new pieces:
+a `PaginatedList<T>` in `Taxi.Application/Common/Models/`, `PageInvalid` / `PageSizeInvalid`
+constants in `LocalizationKeys.Validation` (with entries in both `SharedResource` files), and the
+envelope below:
+
+```csharp
+// src/Taxi.Contracts/Responses/Common/PagedResponse.cs
+namespace Taxi.Contracts.Responses.Common;
+
+public sealed record PagedResponse<T>(
+    IReadOnlyCollection<T> Items,
+    int PageNumber,
+    int PageSize,
+    int TotalPages,
+    int TotalCount)
+{
+    public bool HasNextPage => this.PageNumber < this.TotalPages;
+
+    public bool HasPreviousPage => this.PageNumber > 1;
+}
+```
+
+Never return a bare JSON array from a collection endpoint — adding metadata later is a breaking
+change for every deserializer.
+
+The query side carries the paging inputs:
+
+```csharp
+public record GetCarsQuery(int Page = 1, int PageSize = 20) : ICachedQuery<Result<PaginatedList<CarDto>>>
+{
+    public string CacheKey => $"cars-p{this.Page}-s{this.PageSize}";
+    public string[] Tags => [CacheTags.Cars];
+    public TimeSpan Expiration => TimeSpan.FromMinutes(10);
+}
+```
+
+with a validator using `LocalizationKeys.Validation.PageInvalid` / `PageSizeInvalid`. Note that
+paging multiplies cache keys — tag-based invalidation still clears them all, which is why
+`Tags` matters more than `CacheKey` here.
+
+### 11.3 Contract versioning
+
+The API already versions by URL segment (`api/v{version:apiVersion}/...`) with
+`[MapToApiVersion("1.0")]` per action. If a **breaking** payload change is ever needed, split by
+namespace rather than bolting optional properties on:
 
 ```text
-src/ECommerceApp.Contracts/
-├── v1/
-│   ├── Requests/
-│   │   └── Customers/CreateCustomerRequest.cs  (Requires 'FirstName' and 'LastName')
-│   └── Responses/
-└── v2/
-    ├── Requests/
-    │   └── Customers/CreateCustomerRequest.cs  (Requires single 'FullName' field)
-    └── Responses/
+src/Taxi.Contracts/
+├── V1/Requests/Cars/CreateCarRequest.cs
+└── V2/Requests/Cars/CreateCarRequest.cs
 ```
 
-By isolating structures by version, a `v1` endpoint in the API layer continues to bind identically to the `v1.CreateCustomerRequest` and maps to legacy handlers, while the `v2` endpoint binds the new shape. The Contracts layer remains the exact historical record of the system's external schema changes over time.
+and register the second version in `AddApiDocumentation`'s `versions` array in
+`Taxi.Api/DependencyInjection.cs`, which is currently hard-coded to `["v1"]`. Only do this for a
+genuinely breaking change — additive optional fields do not need a new version.

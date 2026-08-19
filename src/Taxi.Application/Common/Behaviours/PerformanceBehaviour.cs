@@ -32,7 +32,7 @@ public class PerformanceBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequ
     {
         this.timer.Start();
 
-        var response = await next();
+        var response = await next(cancellationToken);
 
         this.timer.Stop();
 

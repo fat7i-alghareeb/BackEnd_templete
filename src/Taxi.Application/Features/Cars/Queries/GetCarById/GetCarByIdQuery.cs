@@ -1,6 +1,7 @@
 namespace Taxi.Application.Features.Cars.Queries.GetCarById;
 
 using MediatR;
+using Taxi.Application.Common.Caching;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Application.Features.Cars.Dtos;
 using Taxi.Domain.Common.Results;
@@ -9,7 +10,7 @@ public record GetCarByIdQuery(Guid Id) : ICachedQuery<Result<CarDto>>
 {
     public string CacheKey => $"cars-{this.Id}";
 
-    public string[] Tags => ["car"];
+    public string[] Tags => [CacheTags.Cars];
 
     public TimeSpan Expiration => TimeSpan.FromMinutes(10);
 }

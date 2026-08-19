@@ -1,205 +1,108 @@
-# 🏛️ Architectural Constitution: API Layer Blueprint
+# API Layer Blueprint — `Taxi.Api`
 
-## 1. Executive Summary & Layer Purpose
+> Start at [AGENTS.md](../../AGENTS.md) — it carries the rules and the add-a-feature
+> checklist. This file is the deep reference for the API layer.
+> Map of all docs: [NAVIGATION.md](../../docs/NAVIGATION.md).
 
-The API / Presentation Layer is the absolute outermost boundary of our Clean Architecture. It is the "bilingual translator" of our system. Its sole, fundamental purpose is to accept requests from the hostile outside world (via HTTP/REST, SignalR WebSockets, or Blazor UI interactions), translate those diverse payloads into rigid Application Commands/Queries, push them into MediatR, and then seamlessly translate the internal Domain results back into appropriate HTTP status codes or visual render states.
+The HTTP boundary and the composition root. Translates requests into MediatR messages and
+`Result<T>` into RFC 7807 responses.
 
-It is absolutely devoid of business logic, database querying logic, and authentication cryptography. The API layer is completely "dumb"; it relies entirely on the Application layer to perform the actual orchestration of the system. If business rules change, this layer should theoretically remain completely untouched.
+Reference implementation: **`Controllers/CarsController.cs`** and
+**`Extensions/ProblemExtensions.cs`**.
 
----
-
-## 2. Dependency Rules & Boundaries
-
-### Inward Pointing Dependencies
-
-The API Layer depends on exactly three internal rings, adhering strictly to the Dependency Inversion Principle:
-
-1. **Contracts Layer:** To understand the shape of incoming JSON requests (e.g., `CreateCustomerRequest`) and outgoing responses (`CustomerDto`).
-2. **Application Layer:** To instantiate system operations (Commands, Queries) and resolve bridging interfaces like cross-cutting `IUser`.
-3. **Infrastructure Layer:** **ONLY** strictly at the composition root (`Program.cs`) to invoke `services.AddInfrastructure(configuration)` and establish the systemic pipeline. Controllers MUST NEVER reference Infrastructure classes or Data Contexts directly.
-
-### Outward Pointing Dependencies
-
-**Nothing.** The API Layer is the absolute terminus of the application. No other layer in the solution references the API Layer. It is purely an execution host.
+Route and status-code rules: [RESTful_Naming_Constitution.md](../../docs/RESTful_Naming_Constitution.md).
 
 ---
 
-## 3. Directory Structure & Anatomy
+## 1. Purpose
 
-Through Forensic Analysis of the codebase, the Presentation layer maintains a complex, highly-segregated directory structure supporting both native UI and dual-HTTP protocols.
+Protocol translation, and hosting. Nothing else.
+
+A controller action does exactly three things: build the command or query, send it, and match the
+`Result<T>` onto an `IActionResult`. If an action contains a loop, a business `if`, a log
+statement or a database call, it is wrong.
+
+The project is also the composition root — `Program.cs` is the only place that knows all layers
+exist.
+
+---
+
+## 2. Dependency rules
+
+**References:** `Taxi.Application`, `Taxi.Contracts`, `Taxi.Infrastructure`, `Taxi.Client`.
+
+- **Application** — commands, queries, DTOs, and the `IUser` / `ILanguageContext` interfaces this
+  layer implements.
+- **Contracts** — request DTOs and `LocalizationKeys`.
+- **Infrastructure** — *only* for `AddInfrastructure(configuration)` and
+  `ApplicationDbContextInitialiser` in the startup path. **No controller may reference an
+  Infrastructure type.**
+- **Client** — referenced but **never hosted**; `Program.cs` has no `MapRazorComponents` call.
+  The reference is currently dead weight.
+
+**Referenced by:** nothing. This is the terminus.
+
+Notable packages: `Asp.Versioning.Mvc` + `.ApiExplorer`, `Microsoft.AspNetCore.OpenApi`,
+`Swashbuckle.AspNetCore` (used only for `UseSwaggerUI`), `Scalar.AspNetCore`,
+`My.Extensions.Localization.Json`, and five OpenTelemetry packages (see §9).
+
+---
+
+## 3. Directory structure
 
 ```text
-src/MechanicShop.Api/
-├── Components/         # Blazor Server/WebAssembly UI shell implementations (App.razor)
-├── Controllers/        # Domain-driven REST Controllers (Primary Routing)
+src/Taxi.Api/
+├── Controllers/
 │   ├── ApiController.cs
-│   ├── CustomersController.cs
-│   ├── DashboardController.cs
-│   └── ...
-├── Extensions/         # Extension methods for HTTP Result mapping (ProblemExtensions.cs)
-├── Infrastructure/     # Cross-cutting API Middlewares (RequestLogContextMiddleware.cs)
+│   ├── CarsController.cs
+│   └── IdentityController.cs
+├── Extensions/
+│   └── ProblemExtensions.cs
+├── Infrastructure/
+│   ├── ForwardedHeadersSettings.cs
+│   ├── GlobalExceptionHandler.cs
+│   └── RequestLogContextMiddleware.cs
 ├── OpenApi/
-│   └── Transformers/   # OpenAPI configuration transformers
-├── Properties/
-│   └── launchSettings.json # Multi-environment startup configurations
-├── Services/           # Context resolution (CurrentUser.cs)
-├── wwwroot/            # Static Web Assets (CSS, JS)
-├── appsettings.json    # Application configuration (Serilog, Caching, JWT Params)
-├── MechanicShop.Api.http # Native IDE REST testing endpoints
+│   └── Transformers/
+│       ├── AcceptLanguageOperationTransformer.cs
+│       ├── BearerSecurityOperationTransformer.cs
+│       ├── BearerSecuritySchemeTransformer.cs
+│       └── VersionInfoTransformer.cs
+├── Resources/
+│   ├── SharedResource.ar.json
+│   └── SharedResource.en.json
+├── Services/
+│   ├── CurrentUser.cs
+│   └── LanguageContext.cs
+├── Properties/launchSettings.json
+├── appsettings.json | appsettings.Development.json | appsettings.Production.json
 ├── DependencyInjection.cs
-└── Program.cs          # The Absolute Composition Root
+├── IAssemblyMarker.cs
+├── Program.cs
+├── SharedResource.cs
+└── Api_Layer_Blueprint.md
 ```
+
+| Folder | Holds | Why here and not elsewhere |
+|---|---|---|
+| `Controllers/` | REST endpoints | HTTP is an API concern |
+| `Extensions/` | `Error` → `ProblemDetails` | Needs `ControllerBase` and `IStringLocalizer` |
+| `Infrastructure/` | Middleware, exception handler, HTTP options | Named for *ASP.NET plumbing*, unrelated to `Taxi.Infrastructure`. These types depend on `HttpContext`, which the Infrastructure project must never see. |
+| `OpenApi/Transformers/` | Document/operation transformers | Keeps `Program.cs` free of Swagger lambdas |
+| `Resources/` | Translation JSON | Copied to output by an explicit `.csproj` `Content Update` |
+| `Services/` | `CurrentUser`, `LanguageContext` | Implementations of **Application** interfaces that need `HttpContext` |
+
+`SharedResource.cs` and `IAssemblyMarker.cs` sit at the project root namespace deliberately, so
+`My.Extensions.Localization.Json` resolves `Resources/SharedResource.{culture}.json` without
+doubling the folder segment.
+
+HTTP test files live in the repository-root `requests/` folder, not here.
 
 ---
 
-## 4. Core Architectural Mechanics
+## 4. Controllers
 
-Based on microscopic, file-by-file analysis of the ingested codebase, the following advanced, enterprise-grade mechanics govern our API surface.
-
-### 4.1. Hybrid UI & API Hosting (Blazor Integration)
-
-Unlike traditional pure-REST architectures that isolate frontends (e.g., React/Angular/Flutter) into completely disjointed servers, this API project acts as a **Hybrid Host**. It simultaneously exposes JSON endpoints _and_ renders WebAssembly interactable components via Microsoft Blazor natively.
-
-**The Strategy:**
-In `Program.cs`, the API registers:
-
-```csharp
-builder.Services.AddRazorComponents()
-    .AddInteractiveWebAssemblyComponents();
-```
-
-And in the pipeline mapping, it mounts the root application component:
-
-```csharp
-app.MapRazorComponents<App>().AllowAnonymous()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(ECommerce.Client._Imports).Assembly);
-```
-
-By inspecting `Components/App.razor`, we observe the `Routes` component utilizing the `InteractiveWebAssemblyRenderMode`. This architectural decision allows the application to directly serve a highly interactive frontend from the exact same server that holds the API, maintaining shared Domain logic (via the `Contracts` project) while eliminating cross-origin configuration overhead and connection latency during initial loads.
-
-### 4.2. Routing Standard: REST Controllers
-
-This system adopts a strictly **Controller-based** routing standard for all business logic interactions.
-
-- **MVC Controllers** (`[ApiController]`) are utilized for all endpoints. All of these inherit from a proprietary `ApiController.cs` base class which overrides validation handling natively.
-
-Every controller enforces rigid API versioning natively via `Asp.Versioning`.
-
-### 4.2.1. RESTful Naming Constitution (Key Takeaways)
-
-To ensure a professional, predictable, and scalable API surface, all developers and AI Agents must adhere to the following naming standards:
-
-1. **Nouns over Verbs**: Endpoints represent "things" (`/products`), not actions. Let HTTP methods (`GET`, `POST`, `PUT`, `DELETE`) define the action.
-2. **Always Pluralize**: Use plural nouns for all collections to maintain consistency, whether fetching a list (`/users`) or a single item (`/users/5`).
-3. **Keep Nesting Shallow**: Nest URLs at most one level deep to show relationships (e.g., `/products/5/reviews`). Avoid deep chains; if it goes deeper than two levels, link directly to the sub-resource.
-4. **Format Consistently**: All URIs must be **lowercase** and use **kebab-case** to separate words (e.g., `/customer-orders`).
-5. **Version Everything**: Always include a version indicator in your base route (e.g., `/api/v1/resources`). This protects clients from breaking during system overhauls.
-
-**The Rules for Controllers:**
-
-1. **Dumb Envelopes**: Controllers MUST NOT contain business logic. They should simply unwrap HTTP requests, dispatch a MediatR command/query, and wrap the `Result` into an `ActionResult`.
-2. **Versioned Routes**: Every controller must be decorated with `[ApiVersion("1.0")]` and `[Route("api/v{version:apiVersion}/[controller]")]`.
-3. **Action Specificity**: Use precise HTTP Verbs (`[HttpGet]`, `[HttpPost]`, etc.) and provide `Produces` attributes for Swagger clarity.
-
-### 4.3. Deep OpenAPI Customization (Transformers)
-
-Configuring Swagger dynamically via nested lambdas inside `Program.cs` pollutes the composition root terribly. Instead, this architecture heavily leverages native `IOpenApiDocumentTransformer` and `IOpenApiOperationTransformer` implementations inside the `OpenApi/Transformers` directory to manipulate the generated JSON definitions securely.
-
-1. **`VersionInfoTransformer.cs`**: Injected natively to rewrite the document title and version parameters gracefully.
-2. **`BearerSecuritySchemeTransformer.cs`**: Programmatically adds the "Bearer / JWT" HTTP specification globally into the OpenAPI Component scheme without relying on third-party Swashbuckle options.
-3. **`BearerSecurityOperationTransformer.cs`** (CRITICAL MECHANIC):
-   This transformer utilizes advanced Reflection to inspect endpoint metadata natively:
-
-```csharp
-var hasAuthorize = metadata.OfType<AuthorizeAttribute>().Any();
-var hasAllowAnonymous = metadata.OfType<AllowAnonymousAttribute>().Any();
-
-if (!hasAuthorize || hasAllowAnonymous) return Task.CompletedTask;
-
-operation.Security.Add(new OpenApiSecurityRequirement { ... });
-```
-
-This forces the Swagger UI to render the "Lock" padlock icon ONLY on endpoints that actively require JWTs!
-
-### 4.4. Identity Resolution (The `CurrentUser` Service)
-
-The inner Application Layer defines an `IUser` interface to retrieve the currently authenticated actor's Identity, but the Application Layer has absolute zero knowledge of HTTP Contexts, Headers, or JSON Web Tokens.
-
-**The Mechanics:**
-The API layer fulfills this crucial contract by implementing a proxy `CurrentUser` service inside the `Services/` directory. It statically injects `IHttpContextAccessor` to bridge the gap, parsing the decoded JWT natively attached to the Context by the ASP.NET Authentication middleware.
-
-```csharp
-using System.Security.Claims;
-using ECommerce.Application.Common.Interfaces;
-
-namespace ECommerce.Api.Services;
-
-// This service is registered as Scoped in DependencyInjection.cs
-public class CurrentUser(IHttpContextAccessor httpContextAccessor) : IUser
-{
-    // Extracts the user ID securely from the JWT payload
-    // eliminating the need to pass 'UserId' redundantly in every JSON request payload
-    public string? Id => httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-}
-```
-
-### 4.5. Universal Error Mapping (The Domain-to-HTTP Translator)
-
-The Application Layer never throws exceptions for business logic; it returns a generic `Result<T>` containing a strong `Error` record. The API Layer uses `IStringLocalizer<SharedResource>` to translate these errors into localized, RFC 7807 compliant `ProblemDetails`. There is exactly **one canonical translator** — [`Extensions/ProblemExtensions.cs`](Extensions/ProblemExtensions.cs). The base `ApiController.Problem(List<Error>)` is a one-line delegator that hands every controller's failure result to it.
-
-**Field semantics on `Error`:**
-
-1. **`Code`** is **always** the localization key (a `LocalizationKeys.X` constant). Never a property name.
-2. **`Description`** is the English fallback used when the localizer cannot resolve the key.
-3. **`PropertyName`** is set only on validation errors that are bound to a specific request property (produced by `ValidationBehavior` via `Error.ValidationForProperty(...)`). When present, it becomes the dictionary key in the RFC 7807 `errors` payload.
-4. **`Args`** are passed to the localizer for parametrized messages (e.g., `WorkOrder.TimingReadonly` uses `{0}` and `{1}`).
-5. **DataAnnotations** errors are localized through the same `SharedResource` dictionary by an `InvalidModelStateResponseFactory` registered in [`DependencyInjection.AddValidation()`](DependencyInjection.cs).
-
-**Status code mapping** (`ErrorKind` → HTTP):
-
-| Kind           | Status                      |
-| -------------- | --------------------------- |
-| `Validation`   | `400 Bad Request`           |
-| `NotFound`     | `404 Not Found`             |
-| `Conflict`     | `409 Conflict`              |
-| `Unauthorized` | `401 Unauthorized`          |
-| `Forbidden`    | `403 Forbidden`             |
-| anything else  | `500 Internal Server Error` |
-
-**Missing-key dev warning:** when `localizer[key].ResourceNotFound` is `true` and the host is `IsDevelopment()`, a Serilog warning is emitted (`"Missing localization key '{Key}' for culture '{Culture}'"`) — surfaces JSON/key drift immediately without spamming production logs. The fallback to `Error.Description` is preferred over leaking the raw key string to the client.
-
-```csharp
-public static IActionResult ToProblem(this List<Error> errors, ControllerBase controller)
-{
-    if (errors.Count == 0)
-    {
-        return controller.Problem();
-    }
-
-    var sp = controller.HttpContext.RequestServices;
-    var localizer = sp.GetRequiredService<IStringLocalizer<SharedResource>>();
-    var logger = sp.GetRequiredService<ILogger<SharedResource>>();
-    var env = sp.GetRequiredService<IHostEnvironment>();
-
-    if (errors.TrueForAll(e => e.Type == ErrorKind.Validation))
-    {
-        var modelState = new ModelStateDictionary();
-        foreach (var e in errors)
-        {
-            var message = Translate(e.Code, e.Args, e.Description, localizer, logger, env);
-            modelState.AddModelError(e.PropertyName ?? string.Empty, message);
-        }
-        return controller.ValidationProblem(modelState);
-    }
-
-    var firstError = errors[0];
-    var title = Translate(firstError.Code, firstError.Args, firstError.Description, localizer, logger, env);
-    return controller.Problem(statusCode: MapStatus(firstError.Type), title: title);
-}
-```
-
-`ApiController` itself stays microscopic:
+### `ApiController`
 
 ```csharp
 [ApiController]
@@ -209,136 +112,393 @@ public class ApiController : ControllerBase
 }
 ```
 
-No localizer plumbing in the base class, no per-controller translation logic. Every controller just calls `Problem(result.Errors)` from the inherited method.
+Two lines. It provides `Problem(List<Error>)` and the `[ApiController]` behaviours (automatic model
+validation, `[FromBody]` inference). No localizer plumbing, no per-controller translation.
 
-### 4.6. Exception Handling (`GlobalExceptionHandler`) & Context Middlewares
-
-For strictly unhandled system panics (out of memory, database connection dropped, null reference exceptions), we implement ASP.NET Core 8's native `IExceptionHandler` via `Infrastructure/GlobalExceptionHandler.cs`. This ensures fatal crashes return sterile `application/problem+json` formatting rather than HTML stack traces, shielding server intervals from exposure.
-
-Furthermore, we utilize `RequestLogContextMiddleware` to inject the unique HTTP request `TraceIdentifier` directly into the Serilog `LogContext`, ensuring every log emitted during a request lifecycle is centrally traceable.
+### A concrete controller
 
 ```csharp
-public class RequestLogContextMiddleware(RequestDelegate next)
+[Route("api/v{version:apiVersion}/cars")]
+[ApiVersion("1.0")]
+[Authorize]
+public sealed class CarsController(ISender sender) : ApiController
 {
-    public Task InvokeAsync(HttpContext httpContext)
+    [HttpGet]
+    [ProducesResponseType(typeof(List<CarDto>), StatusCodes.Status200OK)]
+    [EndpointName("GetCars")]
+    [MapToApiVersion("1.0")]
+    public async Task<IActionResult> GetCars(CancellationToken ct)
     {
-        // Pushes TraceIdentifier into context so Serilog attaches it to all inner logs
-        using (LogContext.PushProperty("CorrelationId", httpContext.TraceIdentifier))
-        {
-            return next(httpContext);
-        }
+        var result = await sender.Send(new GetCarsQuery(), ct);
+        return result.Match(this.Ok, this.Problem);
+    }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(CarDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [EndpointName("CreateCar")]
+    [MapToApiVersion("1.0")]
+    public async Task<IActionResult> CreateCar([FromBody] CreateCarRequest request, CancellationToken ct)
+    {
+        var result = await sender.Send(
+            new CreateCarCommand(request.Make, request.Model, request.Year,
+                                 request.DescriptionEn, request.DescriptionAr),
+            ct);
+
+        return result.Match(
+            car => this.CreatedAtAction(nameof(this.GetCar), new { version = "1.0", id = car.Id }, car),
+            this.Problem);
     }
 }
 ```
 
-### 4.7. Language Resolution & Localization Engine
+The conventions, all mandatory:
 
-The API utilizes `My.Extensions.Localization.Json` as the runtime engine, with resources anchored to the `SharedResource` marker class.
+| Convention | Detail |
+|---|---|
+| Class | `sealed`, primary constructor taking `ISender`, inherits `ApiController` |
+| Route | **literal** lowercase plural — `[Route("api/v{version:apiVersion}/cars")]`, not `[controller]` |
+| Version | `[ApiVersion("1.0")]` on the class, `[MapToApiVersion("1.0")]` on every action |
+| Auth | `[Authorize]` at class level; `[AllowAnonymous]` per action where needed |
+| Naming | Action name = endpoint name = `[EndpointName("GetCar")]` |
+| Responses | One `[ProducesResponseType]` per reachable status; `typeof(ProblemDetails)` for failures |
+| Cancellation | Every action takes `CancellationToken ct` and forwards it |
+| Body | `[FromBody]` a **Contracts request**, mapped to the command by hand |
+| Return | `result.Match(success, this.Problem)` — always |
 
-**Mechanics:**
+Route constraints do real work: `[HttpGet("{id:guid}")]` rejects a malformed id at routing time, so
+no validator is needed for it.
 
-- **LanguageContext**: A scoped service (`ILanguageContext`) implemented in [`Services/LanguageContext.cs`](Services/LanguageContext.cs). It is a **read-only** accessor that returns `IRequestCultureFeature.RequestCulture.UICulture.TwoLetterISOLanguageName`. It NEVER mutates `Thread.CurrentUICulture` — culture flow is entirely owned by the framework's async-execution context. It uses `Languages.Default` as its internal fallback.
-- **Culture Synchronization**: `UseRequestLocalization` is registered as the very first middleware (see §4.11) so every later component — including `UseExceptionHandler` — sees the correct `CultureInfo.CurrentUICulture`. Supported cultures are defined by `Languages.All`.
-- **SharedResource marker class**: Lives at the project's root namespace `MechanicShop.Api` (file: [`SharedResource.cs`](SharedResource.cs)), **not** inside a `Resources` sub-namespace. This keeps the path computation in `My.Extensions.Localization.Json` clean.
-- **JSON Resources**: Stored at [`Resources/SharedResource.en.json`](Resources/SharedResource.en.json) and [`Resources/SharedResource.ar.json`](Resources/SharedResource.ar.json). Explicitly deployed to `bin/.../Resources/` by an entry in [`MechanicShop.Api.csproj`](MechanicShop.Api.csproj).
-- **Swagger Integration**: All API endpoints in Swagger include an `Accept-Language` header parameter with a dropdown for `en` and `ar` via [`AcceptLanguageOperationTransformer`](OpenApi/Transformers/AcceptLanguageOperationTransformer.cs).
-- **ModelState Localization**: `InvalidModelStateResponseFactory` (registered in [`DependencyInjection.AddValidation()`](DependencyInjection.cs)) translates DataAnnotation errors through the same `SharedResource` dictionary used by FluentValidation and domain errors. Contracts request DTOs declare `[Required(ErrorMessage = LocalizationKeys.Validation.X)]` and the factory looks the key up at runtime.
+`UpdateCar` contains the one sanctioned piece of controller logic:
 
-### 4.9. AppSettings & Multi-Environment Configuration
+```csharp
+if (id != request.Id)
+{
+    return this.BadRequest();
+}
+```
 
-Forensic analysis of `appsettings.json` and `launchSettings.json` reveals deep configuration hooks:
+That is a protocol consistency check (route vs body), not a business rule.
 
-- **Serilog Definitions**: Logging overrides natively writing to both `Console` and external remote telemetry servers (e.g., `Seq` at `http://ops.seq:5341`) utilizing `WithMachineName` and `WithThreadId` enrichers.
-- **Launch Profiles**: The IDE relies on complex profiles handling `https`, `http`, `IIS Express`, and fully detached `Docker` orchestrations, ensuring immediate cross-platform developer readiness.
-- **Cache Directives**: `LocalCacheExpirationInMins`, `DistributedCacheExpirationMins` strictly controlled via remote configuration without hardcoding constants.
+### `IdentityController`
 
-### 4.10. HTTP (.http) Native Testing Files
+`[Route("api/token")]` with `[ApiVersionNeutral]` — authentication endpoints sit outside the
+versioning scheme on purpose, since a client that cannot obtain a token cannot negotiate a version.
 
-The repository strictly rejects total reliance on heavy, out-of-band testing environments like Postman. Instead, it relies natively on `.http` files (e.g., `Identity.http`, `ECommerce.Api.http`) located precisely next to the API host tree.
-
-**Architectural Rule:**
-All new endpoints MUST be verifiable via the native IDE `.http` clients. This ensures testing suites are version-controlled strictly alongside the codebase branch state. Developers can mock headers (`POST {{baseUrl}}/token/generate`), inject payloads natively, and debug seamlessly.
-
-### 4.11. Advanced Middleware Pipeline Ordering (`DependencyInjection.cs`)
-
-Security, Telemetry, and Stability dictate the exact chronological execution of middlewares. The API layer implements an incredibly explicit, unchangeable sequence via the `UseCoreMiddlewares()` extension block:
-
-1. `UseRequestLocalization()` - Resolves the `Accept-Language` header into a `CultureInfo` and attaches `IRequestCultureFeature` to the HttpContext. Must run first so every later component — including `UseExceptionHandler` — sees the correct culture and produces translated problem responses. Configured with `SetDefaultCulture(Languages.Default)` and `AddSupportedUICultures(Languages.All)`.
-2. `UseExceptionHandler()` - Must catch unhandled panics before rendering responses.
-3. `UseStatusCodePages()` - Traps standard status code fallbacks.
-4. `UseHttpsRedirection()` - Bounces insecure connections before processing logic.
-5. `UseSerilogRequestLogging()` - Early trap to track total request cycle duration exactly.
-6. `UseCors()` - Must execute before Authentication to process preflight OPTIONS requests natively.
-7. `UseRateLimiter()` - Pre-Authentication. Protects against DDOS attacks and brute-force Auth looping using the `SlidingWindowLimiter` (max 100 reqs/min).
-8. `UseAuthentication()` - Decodes JWT payload.
-9. `UseAuthorization()` - Examines Role allocations.
-10. `UseOutputCache()` - Post-Authorization caching. The base policy includes `.SetVaryByHeader("Accept-Language")` so cached responses are partitioned by culture and never leak across `en` / `ar` requesters.
+Otherwise it follows `CarsController` exactly: `GenerateTokenRequest` / `RefreshTokenRequest` come
+from `Taxi.Contracts`, are mapped to `GenerateTokenCommand` / `RefreshTokenCommand` by hand, and
+the result is matched. Only `GetUserInfo` carries `[Authorize]`; the other two must be reachable
+unauthenticated.
 
 ---
 
-## 5. Anti-Patterns & Rejection Criteria
+## 5. Error translation
 
-### Immediate PR Rejection Checklist for the API Layer
+`Extensions/ProblemExtensions.cs` is the **single** place an `Error` becomes HTTP.
 
-1. 🚨 **Business Logic / Conditions:**
-   - **The Wrong Way:** Checking `if(dto.Price < 0)` or iterating lists inside the Controller.
-   - **Why it's rejected:** The API handles protocol translation exclusively. Universal model verification strictly belongs in the Application layer `ValidationBehavior<T>`.
-2. 🚨 **Direct Infrastructure Interactions:**
-   - **The Wrong Way:** Injecting `AppDbContext` or `SignInManager<AppUser>` directly into a Controller.
-   - **Why it's rejected:** Bypasses Application Layer CQRS Pipelines, Interceptors, Telemetry, and invalidates architectural decoupling.
-3. 🚨 **Returning Raw Domain Entities:**
-   - **The Wrong Way:** Returning a Domain `Customer` entity directly via `Results.Ok(Customer)`.
-   - **Why it's rejected:** Openly exposes total internal database schemas and relational navigation properties. You must ALWAYS map to and return a `Contracts` layer DTO to shelter internal refactoring from external clients.
-4. 🚨 **Swallowing Exceptions:**
-   - **The Wrong Way:** using `try { } catch { return StatusCode(500); }` arbitrarily inside Controllers.
-   - **Why it's rejected:** The Global `IExceptionHandler` catches infrastructural failures automatically. Do not write localized catch blocks. Ensure the Domain returns proper `Error` structs natively.
+```csharp
+public static IActionResult ToProblem(this List<Error> errors, ControllerBase controller)
+{
+    if (errors.Count == 0)
+    {
+        return controller.Problem();
+    }
+
+    // ... resolve IStringLocalizer<SharedResource>, ILogger, IHostEnvironment ...
+
+    if (errors.TrueForAll(e => e.Type == ErrorKind.Validation))
+    {
+        return BuildValidationProblem(errors, controller, localizer, logger, env);
+    }
+
+    return BuildProblem(errors[0], controller, localizer, logger, env);
+}
+```
+
+- **All-validation** → `ValidationProblemDetails` with an `errors` dictionary keyed by
+  `Error.PropertyName` (empty string when absent).
+- **Anything else** → `ProblemDetails` built from `errors[0]`; the remaining errors are dropped.
+- `Translate` resolves `Error.Code` through the localizer, passing `Error.Args` when present. On a
+  miss it logs a warning **in Development only** and falls back to `Error.Description`.
+- Status mapping: `Validation` 400 · `Unauthorized` 401 · `Forbidden` 403 · `NotFound` 404 ·
+  `Conflict` 409 · everything else 500.
+
+DataAnnotation failures take a parallel path — `InvalidModelStateResponseFactory`, registered in
+`DependencyInjection.AddValidation()` — but resolve keys against the same `SharedResource`
+dictionary, so a client sees one consistent error format regardless of which tier rejected the
+request.
+
+`AddCustomProblemDetails` adds `requestId` (the `TraceIdentifier`) and an `instance` of
+`"{METHOD} {path}"` to every problem response, which ties a client report back to the logs.
 
 ---
 
-## 6. The Composition Root & DI Registration (Program.cs)
-
-The `Program.cs` file is the sole Composition Root of the entire distributed architecture. It is entirely stripped of proprietary logic, simply connecting the sprawling Dependency Injection registrations from the three inner rings recursively.
+## 6. `Program.cs` and DI
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-// The Full Clean Architecture Registration Stack
 builder.Services
-    .AddPresentation(builder.Configuration)
+    .AddPresentation(builder.Configuration, builder.Environment)
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
 
-// Overrides the .NET default logger with Serilog entirely.
-builder.Host.UseSerilog((context, loggerConfig) =>
-    loggerConfig.ReadFrom.Configuration(context.Configuration));
+builder.Host.UseSerilog((context, loggerConfig) => loggerConfig.ReadFrom.Configuration(context.Configuration));
 
 var app = builder.Build();
 
+// Database:ApplyMigrationsOnStartup ?? !IsProduction()
+if (applyMigrationsOnStartup) { await app.ApplyMigrationsWithRetryAsync(); }
+
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
-    // Registers the manipulated OpenApi payload
     app.MapOpenApi();
     app.UseSwaggerUI(...);
-
-    // An alternative API interface
     app.MapScalarApiReference();
-
-    // Secure Migrations execution, abstracting Entity Framework hooks
-    await app.InitialiseDatabaseAsync();
+}
+else
+{
+    app.UseHsts();
 }
 
-// Executes exact chronological security & routing pipe mapped previously
 app.UseCoreMiddlewares(builder.Configuration);
-
-app.MapControllers(); // Wires up MVC
-
-// Mounts Blazor Components natively into the DOM
-app.MapRazorComponents<App>()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(MechanicShop.Client._Imports).Assembly);
-
-// Maps native SignalR Websocket pipelines
-app.MapHub<WorkOrderHub>("/hubs/workorders");
-
+app.MapControllers();
 app.Run();
+
+public partial class Program;
 ```
+
+`public partial class Program;` exists so `WebApplicationFactory<Program>` can target it in
+integration tests (none exist yet).
+
+`AddPresentation` composes twelve registrations: ProblemDetails · API versioning · exception
+handling · controllers + JSON (`JsonIgnoreCondition.WhenWritingNull`) · validation ·
+`IUser`/`ILanguageContext`/`IHttpContextAccessor` · localization · CORS ·
+rate limiting · forwarded headers · OpenAPI documents.
+
+### Middleware order (`UseCoreMiddlewares`)
+
+| # | Middleware | Why here |
+|---|---|---|
+| 1 | `UseRequestLocalization` | Must run first so everything downstream — including the exception handler — sees the right culture |
+| 2 | `RequestLogContextMiddleware` | Pushes `CorrelationId` before anything can log |
+| 3 | `UseExceptionHandler` | Catches everything below it |
+| 4 | `UseStatusCodePages` | Bodies for bare status results |
+| 5 | `UseHttpsRedirection` | Bounce insecure requests early |
+| 6 | `UseStaticFiles` | |
+| 7 | `UseSerilogRequestLogging` | One summary line per request |
+| 8 | `UseCors` | Before authentication, so preflight `OPTIONS` is not challenged |
+| 9 | `UseRateLimiter` | Before authentication, so brute force is throttled |
+| 10 | `UseAuthentication` | Decode the JWT |
+| 11 | `UseAuthorization` | Evaluate `[Authorize]` |
+
+`UseForwardedHeaders` runs earlier, in `Program.cs`, before anything reads the scheme or client IP.
+
+**There is no response-level output caching.** `AddOutputCache`/`UseOutputCache` were registered
+but no endpoint ever carried `[OutputCache]`, so they were removed. All caching happens in the
+MediatR `CachingBehavior`, keyed per query and partitioned by language — see the
+[Application blueprint](../Taxi.Application/Application_Layer_Blueprint.md).
+
+Rate limiting: one sliding window — 100 requests/minute, 6 segments, queue of 10, 429 on reject.
+It is global, not per-user or per-endpoint.
+
+---
+
+## 7. HTTP-context services
+
+Both implement **Application** interfaces and live here because they need `HttpContext`:
+
+```csharp
+public class CurrentUser(IHttpContextAccessor httpContextAccessor) : IUser
+{
+    public string? Id => this.httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+}
+```
+
+```csharp
+public sealed class LanguageContext(IHttpContextAccessor accessor) : ILanguageContext
+{
+    public string Language =>
+        accessor.HttpContext?.Features.Get<IRequestCultureFeature>()
+            ?.RequestCulture.UICulture.TwoLetterISOLanguageName
+        ?? Languages.Default;
+}
+```
+
+`LanguageContext` is strictly read-only — it never mutates `CultureInfo.CurrentUICulture`, so it
+is safe across async boundaries. Both are registered scoped in `AddIdentityInfrastructure()`.
+
+`CurrentUser.Id` is null outside a request (background work, seeding), which is why
+`AuditableEntity.CreatedBy` is nullable.
+
+---
+
+## 8. OpenAPI
+
+Four transformers, registered per document in `AddApiDocumentation` (currently `["v1"]`):
+
+| Transformer | Kind | Does |
+|---|---|---|
+| `VersionInfoTransformer` | document | Sets `Info.Version` and `Info.Title` from the document name |
+| `BearerSecuritySchemeTransformer` | document | Registers the `Bearer` HTTP/JWT scheme in `Components` |
+| `BearerSecurityOperationTransformer` | operation | Reads `ActionDescriptor.EndpointMetadata`; adds the security requirement **only** when `[Authorize]` is present without `[AllowAnonymous]` — so the padlock appears exactly on protected endpoints |
+| `AcceptLanguageOperationTransformer` | operation | Adds an `Accept-Language` header parameter with an enum of `Languages.All`, defaulting to `Languages.Default` |
+
+Development only: OpenAPI JSON at `/openapi/v1.json`, Swagger UI, and Scalar. Production gets
+`UseHsts()` instead.
+
+Adding a version means adding it to the `versions` array **and** to the controllers'
+`[ApiVersion]` / `[MapToApiVersion]` attributes.
+
+---
+
+## 9. Configuration
+
+| Section | Consumed by | Note |
+|---|---|---|
+| `ConnectionStrings:DefaultConnection` | `AddInfrastructure` | **Blank in `appsettings.json`** — user secrets / env / `.env` |
+| `JwtSettings` | `AddInfrastructure`, `TokenProvider` | `Secret` blank on purpose |
+| `AppSettings` | CORS, `DefaultLanguage` | `CorsPolicyName`, `AllowedOrigins` |
+| `ForwardedHeaders` | `AddAppForwardedHeaders` | `KnownProxies` / `KnownIPNetworks` parsed with clear failure messages; `AllowAllInDevelopment` relaxes them locally only |
+| `Database:ApplyMigrationsOnStartup` | `Program.cs` | Defaults to on outside Production |
+| `Database:ResetOnStartup` | `ApplyMigrationsWithRetryAsync` | **Destructive**; ignored (with a warning) outside Development |
+| `Serilog` | `UseSerilog` | Console + daily rolling file under `logs/` |
+
+---
+
+## 10. Observability
+
+Wired in `AddObservability()` and consumed by services `docker-compose` already provisions.
+
+| Signal | How | Where it lands |
+|---|---|---|
+| Traces | `AddAspNetCoreInstrumentation` + `AddHttpClientInstrumentation`, OTLP exporter | Seq, via `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| Metrics | Same instrumentation, Prometheus exporter | `/metrics`, scraped by Prometheus, graphed in Grafana |
+| Logs | Serilog | Console, rolling file, and Seq |
+
+- The OTLP exporter is configured **entirely by environment variables**
+  (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL`), which `docker-compose.override.yml`
+  sets. Running outside compose without them simply produces no exported traces — it does not fail.
+- `MapPrometheusScrapingEndpoint()` in `Program.cs` serves `/metrics`, matching the path in
+  `containers/prometheus/prometheus.yml`. **It is unauthenticated**: it exposes request counts and
+  durations, never payloads, and is only reachable on the published port. Put it behind the proxy
+  before exposing the API publicly.
+- The Seq sink is declared in `appsettings.Development.json` pointing at `localhost:5341`. Inside
+  compose, `Serilog__WriteTo__2__Args__serverUrl` overrides it to the `seq` service name. That index
+  matters — .NET configuration merges arrays positionally, so the sink list is restated in full
+  rather than appended to.
+
+---
+
+## 11. Belongs / does not belong
+
+**Belongs:** controllers · middleware and exception handling · `Error` → `ProblemDetails` ·
+OpenAPI configuration · CORS, rate limiting, forwarded headers, localization setup ·
+`HttpContext`-backed implementations of Application interfaces · the composition root · resource
+JSON.
+
+**Does not belong:** business rules · database access · `AppDbContext`, `UserManager<AppUser>` or
+any Infrastructure type in a controller · `try/catch` in an action · returning domain entities ·
+manual localization inside a controller.
+
+---
+
+## 12. Naming
+
+Full rules and the verb/status matrix: [RESTful Naming Constitution](../../docs/RESTful_Naming_Constitution.md).
+The essentials:
+
+| Thing | Convention | Example |
+|---|---|---|
+| Controller | `<Plural>Controller`, `sealed` | `CarsController` |
+| Route | literal, lowercase, plural, versioned | `api/v{version:apiVersion}/cars` |
+| Auth route | version-neutral | `api/token` |
+| Action | verb + singular/plural noun | `GetCar`, `GetCars`, `CreateCar`, `RemoveCar` |
+| Endpoint name | identical to the action | `[EndpointName("GetCar")]` |
+| Route parameter | constrained | `{id:guid}` |
+| Multi-word segment | kebab-case | `/maintenance-records`, `/refresh-token` |
+
+The action verb follows the Application layer, not HTTP: `DELETE /cars/{id}` maps to `RemoveCar`
+because the command is `RemoveCarCommand`.
+
+---
+
+## 13. Talking to other layers
+
+| Direction | How |
+|---|---|
+| **← client** | JSON binds to a `Taxi.Contracts` request type; DataAnnotations run first, and a failure becomes a localized 400 through `InvalidModelStateResponseFactory` before MediatR is touched. |
+| **→ Application** | The action maps the request to a command/query **by hand** and sends it via `ISender`. No mapping library. |
+| **← Application** | A `Result<T>` comes back. `result.Match(success, this.Problem)` forks it; `ProblemExtensions` converts `Error` to RFC 7807. |
+| **→ Infrastructure** | Startup only — `AddInfrastructure(configuration)` and `ApplyMigrationsWithRetryAsync`. Never from a controller. |
+| **→ Contracts** | Request types and `LocalizationKeys` for the resource lookup. |
+| **implements** | `IUser` → `CurrentUser` and `ILanguageContext` → `LanguageContext`, both Application interfaces that need `HttpContext`, registered in `AddIdentityInfrastructure()`. |
+
+Responses currently return Application DTOs (`CarDto`) rather than `Contracts/Responses` types.
+See the [Contracts blueprint](../Taxi.Contracts/Contracts_Layer_Blueprint.md) for why, and what
+changing it would cost.
+
+---
+
+## 14. Common mistakes
+
+| ❌ | ✅ |
+|---|---|
+| `[Route("api/v{version:apiVersion}/[controller]")]` | `[Route("api/v{version:apiVersion}/cars")]` |
+| `if (request.Year < 1886) return BadRequest();` | Let the validator / domain guard produce it |
+| `try { ... } catch { return StatusCode(500); }` | `GlobalExceptionHandler` handles it |
+| Injecting `AppDbContext` | Inject `ISender`, send a query |
+| `return Ok(car)` where `car` is a `Car` | Return the DTO the handler produced |
+| Omitting `[EndpointName]` | Every action has one |
+| Omitting `CancellationToken` | Every action takes and forwards `ct` |
+| `CreatedAtAction(..., new { id = dto }, dto)` | `new { version = "1.0", id = dto.Id }` — the fixed bug |
+| Building `ProblemDetails` by hand | `return result.Match(success, this.Problem);` |
+| Registering middleware directly in `Program.cs` | Add it to `UseCoreMiddlewares`, in the right position |
+| Binding an Application command straight from `[FromBody]` | Bind a `Taxi.Contracts` request and map it |
+| Returning `exception.Message` to the caller | `GlobalExceptionHandler` exposes detail in Development only |
+
+---
+
+## 15. Future Extensions — NOT IMPLEMENTED
+
+> ⚠️ **None of the following exists in this repository.** Corrected sketches only. In particular,
+> the previous version of this document described Blazor hosting and a SignalR hub as if they were
+> already wired — they are not.
+
+### 15.1 Hosting the Blazor client
+
+`Taxi.Api` already references `Taxi.Client` and `Microsoft.AspNetCore.Components.WebAssembly.Server`,
+so only the wiring is missing. The client would first need an `App.razor`, a `Routes.razor` and an
+`_Imports.razor` — today it has none.
+
+```csharp
+// registration
+builder.Services.AddRazorComponents().AddInteractiveWebAssemblyComponents();
+
+// after app.MapControllers()
+app.MapRazorComponents<App>()
+   .AddInteractiveWebAssemblyRenderMode()
+   .AddAdditionalAssemblies(typeof(Taxi.Client._Imports).Assembly);
+```
+
+You would also need `app.UseWebAssemblyDebugging()` in Development and
+`app.MapFallbackToFile("index.html")` for client-side routing. Note `UseStaticFiles` is already in
+the pipeline. If the client stays a separate deployment instead, **remove the project reference** —
+right now it is dead weight.
+
+### 15.2 Correlating logs with traces
+
+`RequestLogContextMiddleware` pushes ASP.NET's `TraceIdentifier` as `CorrelationId`. Now that
+OpenTelemetry is active, the W3C trace id is the more useful correlator — switching to
+`Activity.Current?.TraceId` would let a Seq log line and its trace be joined directly.
+
+### 15.3 Per-endpoint rate limiting
+
+The current limiter is a single global window. For a stricter policy on `/api/token/generate`
+(the brute-force target), add a named policy in `AddAppRateLimiting` and apply
+`[EnableRateLimiting("TokenPolicy")]` to the action. Partition by IP with
+`RateLimitPartition.GetFixedWindowLimiter(httpContext.Connection.RemoteIpAddress)` — but only
+after `UseForwardedHeaders` is correctly configured with `KnownProxies`, or every request behind a
+proxy shares one bucket.

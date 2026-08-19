@@ -1,0 +1,161 @@
+### Taxi_Server — API smoke tests
+### Run the API first:  dotnet run --project src/Taxi.Api
+### Ports come from src/Taxi.Api/Properties/launchSettings.json
+
+@baseUrl = https://localhost:7007
+@lang = en
+
+### ---------------------------------------------------------------------------
+### 1. Authenticate — seeded Manager account
+### Copy `accessToken` from the response into @token below.
+# @name generateToken
+POST {{baseUrl}}/api/token/generate
+Content-Type: application/json
+Accept-Language: {{lang}}
+
+{
+  "email": "admin@taxi.com",
+  "password": "Admin123!"
+}
+
+### Set from the response above
+@token = {{generateToken.response.body.accessToken}}
+@refreshToken = {{generateToken.response.body.refreshToken}}
+
+### 1a. Bad password → 409, message localized by Accept-Language
+POST {{baseUrl}}/api/token/generate
+Content-Type: application/json
+Accept-Language: ar
+
+{
+  "email": "admin@taxi.com",
+  "password": "wrong-password"
+}
+
+### 1b. Refresh the access token (rotates the refresh token — one live token per user)
+POST {{baseUrl}}/api/token/refresh-token
+Content-Type: application/json
+
+{
+  "expiredAccessToken": "{{token}}",
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 1c. Current user info (cached under CacheTags.UserInfo)
+GET {{baseUrl}}/api/token/user-info
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------------------
+### 2. Cars — the reference feature
+
+### 2a. List all cars (cached: GetCarsQuery, tag "car", 10 min, culture-aware)
+GET {{baseUrl}}/api/v1/cars
+Authorization: Bearer {{token}}
+Accept-Language: {{lang}}
+
+### 2b. Same list in Arabic — separate cache entry (`cars_ar`), different description
+GET {{baseUrl}}/api/v1/cars
+Authorization: Bearer {{token}}
+Accept-Language: ar
+
+### 2c. Create a car → 201 + Location: /api/v1/cars/{guid}
+# @name createCar
+POST {{baseUrl}}/api/v1/cars
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept-Language: {{lang}}
+
+{
+  "make": "Toyota",
+  "model": "Camry",
+  "year": 2024,
+  "descriptionEn": "A reliable mid-size sedan.",
+  "descriptionAr": "سيارة سيدان متوسطة الحجم وموثوقة."
+}
+
+@carId = {{createCar.response.body.id}}
+
+### 2d. Get one car (cached: GetCarByIdQuery). Run twice — the second hit should not query the DB.
+GET {{baseUrl}}/api/v1/cars/{{carId}}
+Authorization: Bearer {{token}}
+Accept-Language: {{lang}}
+
+### 2e. Update → 204, and evicts the "car" cache tag
+PUT {{baseUrl}}/api/v1/cars/{{carId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id": "{{carId}}",
+  "make": "Toyota",
+  "model": "Camry Hybrid",
+  "year": 2025,
+  "descriptionEn": "A reliable mid-size hybrid sedan.",
+  "descriptionAr": "سيارة سيدان هجينة متوسطة الحجم وموثوقة."
+}
+
+### 2f. Re-list — the update must be visible (proves tag invalidation)
+GET {{baseUrl}}/api/v1/cars
+Authorization: Bearer {{token}}
+Accept-Language: {{lang}}
+
+### 2g. Delete → 204
+DELETE {{baseUrl}}/api/v1/cars/{{carId}}
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------------------
+### 3. Failure paths
+
+### 3a. No token → 401
+GET {{baseUrl}}/api/v1/cars
+
+### 3b. Unknown id → 404, title from LocalizationKeys.Car.NotFound
+GET {{baseUrl}}/api/v1/cars/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{token}}
+
+### 3c. Invalid year → 400 ValidationProblemDetails keyed by "Year"
+POST {{baseUrl}}/api/v1/cars
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept-Language: {{lang}}
+
+{
+  "make": "Ford",
+  "model": "Model T",
+  "year": 1500,
+  "descriptionEn": "Too old to be valid.",
+  "descriptionAr": "قديمة جدًا."
+}
+
+### 3d. Same, in Arabic — the validation message must be translated
+POST {{baseUrl}}/api/v1/cars
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept-Language: ar
+
+{
+  "make": "Ford",
+  "model": "Model T",
+  "year": 1500,
+  "descriptionEn": "Too old to be valid.",
+  "descriptionAr": "قديمة جدًا."
+}
+
+### 3e. Route id / body id mismatch → 400 from the controller's consistency check
+PUT {{baseUrl}}/api/v1/cars/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id": "00000000-0000-0000-0000-000000000002",
+  "make": "Toyota",
+  "model": "Camry",
+  "year": 2024,
+  "descriptionEn": "Mismatched id.",
+  "descriptionAr": "معرف غير متطابق."
+}
+
+### ---------------------------------------------------------------------------
+### 4. Documentation endpoints (Development only)
+
+GET {{baseUrl}}/openapi/v1.json

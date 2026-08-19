@@ -1,0 +1,29 @@
+{
+  // Markdown lint rules for the repository docs.
+  // Run: npx markdownlint-cli2 "**/*.md"
+  "config": {
+    "default": true,
+
+    // Prose in this repo wraps at 100. Tables, code blocks and headings are
+    // exempt because they cannot be wrapped without breaking rendering.
+    "MD013": {
+      "line_length": 100,
+      "tables": false,
+      "code_blocks": false,
+      "headings": false
+    },
+
+    // Table pipe alignment is owned by the editor's formatter (Prettier), which
+    // pads columns in some files and not others. Not a correctness concern.
+    "MD060": false
+  },
+
+  "globs": ["**/*.md"],
+
+  "ignores": [
+    "**/node_modules/**",
+    "**/bin/**",
+    "**/obj/**",
+    "src/Taxi.Client/wwwroot/**"
+  ]
+}
