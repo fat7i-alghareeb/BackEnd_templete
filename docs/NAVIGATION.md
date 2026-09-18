@@ -1,6 +1,6 @@
 # Documentation Map
 
-Twelve markdown files. This page says which one to open. Nothing else.
+Thirteen markdown files. This page says which one to open. Nothing else.
 
 ---
 
@@ -27,6 +27,7 @@ Twelve markdown files. This page says which one to open. Nothing else.
 | [docs/ARCHITECTURE.md](ARCHITECTURE.md) | System overview for humans — layers, dependency graph, `Result<T>`, pipeline, persistence, API surface | The architecture changes |
 | [docs/RESTful_Naming_Constitution.md](RESTful_Naming_Constitution.md) | Routes, verbs, status codes, required action attributes | An API convention changes |
 | [docs/NAVIGATION.md](NAVIGATION.md) | This page | A document is added or moved |
+| [docs/SHOWCASE.md](SHOWCASE.md) | Visual tour — diagrams of every major feature, images in `docs/assets/` | A feature shown in it changes |
 | [prompts/](../prompts/README.md) | Templates for briefing an agent — what to say, what to decide first, what "done" means | A new kind of task recurs |
 
 ### Layer blueprints — deep reference, one per project

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="t d">
+  <title id="t">MediatR request pipeline</title>
+  <desc id="d">Every command and query passes through nested behaviours: unhandled-exception logging, validation, performance timing and caching, before reaching its handler. The handler returns Result of T, which the controller matches into a success response or ProblemDetails.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1020"/>
+      <stop offset="1" stop-color="#171236"/>
+    </linearGradient>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#E2E8F0"/>
+    </marker>
+    <style>
+      text { font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+      .mono { font-family: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace; }
+      .lbl { font-size: 14px; font-weight: 700; }
+      .note { font-size: 12.5px; fill: #CBD5E1; }
+      .flow { stroke-dasharray: 7 6; animation: dash 1s linear infinite; }
+      @keyframes dash { to { stroke-dashoffset: -13; } }
+    </style>
+  </defs>
+
+  <rect width="1200" height="500" rx="22" fill="url(#bg)"/>
+  <text x="40" y="46" font-size="24" font-weight="800" fill="#F8FAFC">Request pipeline</text>
+  <text x="40" y="70" font-size="14.5" fill="#94A3B8">Registration order is execution order. Cross-cutting concerns live here, not in handlers.</text>
+
+  <!-- logging pre-processor strip -->
+  <rect x="210" y="88" width="780" height="30" rx="8" fill="#1E293B" stroke="#64748B" stroke-dasharray="4 4"/>
+  <text x="226" y="108" class="lbl" fill="#E2E8F0" font-size="13">LoggingBehaviour</text>
+  <text x="974" y="108" class="note" text-anchor="end">IRequestPreProcessor · logs request name + user id</text>
+
+  <!-- nested behaviours -->
+  <rect x="210" y="130" width="780" height="340" rx="18" fill="#F43F5E" fill-opacity="0.10" stroke="#F43F5E" stroke-width="2"/>
+  <text x="228" y="156" class="lbl" fill="#FDA4AF">UnhandledExceptionBehaviour</text>
+  <text x="972" y="156" class="note" text-anchor="end">outermost · logs payload, rethrows</text>
+
+  <rect x="240" y="172" width="720" height="274" rx="16" fill="#F59E0B" fill-opacity="0.10" stroke="#F59E0B" stroke-width="2"/>
+  <text x="258" y="198" class="lbl" fill="#FCD34D">ValidationBehavior</text>
+  <text x="942" y="198" class="note" text-anchor="end">FluentValidation · short-circuits to failed Result</text>
+
+  <rect x="270" y="214" width="660" height="208" rx="14" fill="#2DD4BF" fill-opacity="0.10" stroke="#2DD4BF" stroke-width="2"/>
+  <text x="288" y="240" class="lbl" fill="#5EEAD4">PerformanceBehaviour</text>
+  <text x="912" y="240" class="note" text-anchor="end">Stopwatch · warns above 500 ms</text>
+
+  <rect x="300" y="256" width="600" height="142" rx="12" fill="#38BDF8" fill-opacity="0.10" stroke="#38BDF8" stroke-width="2"/>
+  <text x="318" y="282" class="lbl" fill="#7DD3FC">CachingBehavior</text>
+  <text x="882" y="282" class="note" text-anchor="end">ICachedQuery only · HybridCache · key per language</text>
+
+  <rect x="330" y="298" width="540" height="76" rx="10" fill="#7C3AED" stroke="#C4B5FD" stroke-width="2"/>
+  <text x="600" y="330" text-anchor="middle" font-size="17" font-weight="800" fill="#FFFFFF">Handler</text>
+  <text x="600" y="354" text-anchor="middle" class="mono" font-size="12.5" fill="#EDE9FE">Domain factory / behaviour  →  IAppDbContext  →  DTO</text>
+
+  <!-- in -->
+  <rect x="24" y="266" width="160" height="72" rx="14" fill="#0F172A" stroke="#94A3B8"/>
+  <text x="104" y="296" text-anchor="middle" font-size="15" font-weight="700" fill="#F8FAFC">Controller</text>
+  <text x="104" y="318" text-anchor="middle" class="mono" font-size="12" fill="#94A3B8">sender.Send()</text>
+  <path class="flow" d="M184 302 H206" stroke="#E2E8F0" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+
+  <!-- out -->
+  <path class="flow" d="M990 302 H1012" stroke="#E2E8F0" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+  <rect x="1016" y="266" width="160" height="72" rx="14" fill="#0F172A" stroke="#94A3B8"/>
+  <text x="1096" y="296" text-anchor="middle" font-size="15" font-weight="700" fill="#F8FAFC">Result&lt;T&gt;</text>
+  <text x="1096" y="318" text-anchor="middle" class="mono" font-size="12" fill="#94A3B8">.Match(ok, Problem)</text>
+
+  <path d="M1066 338 V372" stroke="#34D399" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M1126 338 V372" stroke="#FB7185" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <rect x="1016" y="378" width="76" height="46" rx="10" fill="#064E3B" stroke="#34D399"/>
+  <text x="1054" y="398" text-anchor="middle" font-size="12" font-weight="700" fill="#A7F3D0">2xx</text>
+  <text x="1054" y="414" text-anchor="middle" font-size="11" fill="#6EE7B7">DTO</text>
+  <rect x="1100" y="378" width="76" height="46" rx="10" fill="#4C0519" stroke="#FB7185"/>
+  <text x="1138" y="398" text-anchor="middle" font-size="12" font-weight="700" fill="#FECDD3">4xx/5xx</text>
+  <text x="1138" y="414" text-anchor="middle" font-size="11" fill="#FDA4AF">Problem</text>
+</svg>

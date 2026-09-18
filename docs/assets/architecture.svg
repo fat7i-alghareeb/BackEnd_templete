@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580" role="img" aria-labelledby="t d">
+  <title id="t">Clean Architecture layers</title>
+  <desc id="d">Concentric layers: Domain in the centre, then Application, Infrastructure and Api. Contracts is a shared vocabulary every layer can see. Dependencies point inward.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1020"/>
+      <stop offset="1" stop-color="#171236"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#2DD4BF"/>
+    </marker>
+    <style>
+      text { font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+      .mono { font-family: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace; }
+      .flow { stroke-dasharray: 6 6; animation: dash 1.2s linear infinite; }
+      @keyframes dash { to { stroke-dashoffset: -12; } }
+      .h { font-size: 17px; font-weight: 700; fill: #F8FAFC; }
+      .p { font-size: 13.5px; fill: #94A3B8; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="580" rx="22" fill="url(#bg)"/>
+  <text x="48" y="58" font-size="24" font-weight="800" fill="#F8FAFC">Architecture</text>
+  <text x="48" y="84" font-size="15" fill="#94A3B8">Dependencies point inward. Business rules never know about HTTP, EF Core or JWT.</text>
+
+  <!-- onion -->
+  <g transform="translate(300 312)">
+    <circle r="210" fill="#1E1B4B" stroke="#6366F1" stroke-width="2"/>
+    <circle r="158" fill="#2E1065" stroke="#8B5CF6" stroke-width="2"/>
+    <circle r="106" fill="#4C1D95" stroke="#A78BFA" stroke-width="2"/>
+    <circle r="54" fill="#7C3AED" stroke="#EDE9FE" stroke-width="2"/>
+
+    <g text-anchor="middle" font-weight="700" letter-spacing="1.2">
+      <text y="5" font-size="14" fill="#FFFFFF">DOMAIN</text>
+      <text y="-76" font-size="13" fill="#EDE9FE">APPLICATION</text>
+      <text y="-132" font-size="13" fill="#DDD6FE">INFRASTRUCTURE</text>
+      <text y="-182" font-size="13" fill="#C7D2FE">API</text>
+    </g>
+    <g text-anchor="middle" font-size="11" fill="#C4B5FD" opacity="0.85">
+      <text y="22">Result&lt;T&gt;</text>
+      <text y="80">CQRS · behaviours</text>
+      <text y="134">EF Core · Identity · JWT</text>
+      <text y="188">controllers · middleware</text>
+    </g>
+
+    <!-- inward arrows -->
+    <g stroke="#2DD4BF" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
+      <path class="flow" d="M-200 -40 L-58 -12"/>
+      <path class="flow" d="M200 -40 L58 -12"/>
+    </g>
+  </g>
+
+  <!-- contracts pill -->
+  <g transform="translate(40 556)">
+    <rect x="0" y="-26" width="520" height="34" rx="17" fill="#0F172A" stroke="#F59E0B" stroke-opacity="0.7" stroke-dasharray="5 4"/>
+    <text x="260" y="-4" text-anchor="middle" font-size="13" font-weight="600" fill="#FDE68A">Taxi.Contracts — shared DTOs · LocalizationKeys · Languages</text>
+  </g>
+
+  <!-- cards -->
+  <g transform="translate(620 118)">
+    <g>
+      <rect width="532" height="76" rx="14" fill="#0F172A" stroke="#7C3AED"/>
+      <rect width="6" height="76" rx="3" fill="#7C3AED"/>
+      <text x="24" y="30" class="h">Taxi.Domain</text>
+      <text x="24" y="54" class="p">Entities, factory guards, Result&lt;T&gt; / Error, LocalizedText</text>
+    </g>
+    <g transform="translate(0 88)">
+      <rect width="532" height="76" rx="14" fill="#0F172A" stroke="#8B5CF6"/>
+      <rect width="6" height="76" rx="3" fill="#8B5CF6"/>
+      <text x="24" y="30" class="h">Taxi.Application</text>
+      <text x="24" y="54" class="p">Vertical-slice commands &amp; queries, validators, MediatR behaviours</text>
+    </g>
+    <g transform="translate(0 176)">
+      <rect width="532" height="76" rx="14" fill="#0F172A" stroke="#A78BFA"/>
+      <rect width="6" height="76" rx="3" fill="#A78BFA"/>
+      <text x="24" y="30" class="h">Taxi.Infrastructure</text>
+      <text x="24" y="54" class="p">EF Core + PostgreSQL, ASP.NET Identity, JWT, HybridCache</text>
+    </g>
+    <g transform="translate(0 264)">
+      <rect width="532" height="76" rx="14" fill="#0F172A" stroke="#6366F1"/>
+      <rect width="6" height="76" rx="3" fill="#6366F1"/>
+      <text x="24" y="30" class="h">Taxi.Api</text>
+      <text x="24" y="54" class="p">Thin controllers, ProblemDetails, OpenAPI, versioning, telemetry</text>
+    </g>
+    <g transform="translate(0 352)">
+      <rect width="532" height="76" rx="14" fill="#0F172A" stroke="#F59E0B" stroke-dasharray="5 4"/>
+      <rect width="6" height="76" rx="3" fill="#F59E0B"/>
+      <text x="24" y="30" class="h">Taxi.Contracts</text>
+      <text x="24" y="54" class="p">Request DTOs + localization keys shared by every layer</text>
+    </g>
+  </g>
+</svg>
