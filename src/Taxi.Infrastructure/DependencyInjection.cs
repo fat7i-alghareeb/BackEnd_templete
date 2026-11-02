@@ -20,6 +20,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
+        services.Configure<SeedSettings>(configuration.GetSection(SeedSettings.SectionName));
         services.AddSingleton(TimeProvider.System);
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");

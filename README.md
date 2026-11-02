@@ -109,8 +109,10 @@ In Development, the API docs are served at:
 | 🧭 Swagger UI | `/swagger` |
 | ✨ Scalar | `/scalar/v1` |
 
-Sample calls are in [requests/requests.http](requests/requests.http). Sign in with the seeded
-`admin@taxi.com` / `Admin123!` account (role `Manager`).
+Sample calls are in [requests/requests.http](requests/requests.http). In Development, sign in
+with the seeded `admin@taxi.com` / `Admin123!` account (role `Manager`). Those credentials come
+from `Seed:Admin` in `appsettings.Development.json`; any other environment seeds an account only
+when `Seed__Admin__Email` and `Seed__Admin__Password` are set.
 
 <details>
 <summary><b>🔑 Secrets and configuration</b></summary>

@@ -3,19 +3,23 @@ namespace Taxi.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Taxi.Domain.Cars;
 using Taxi.Infrastructure.Identity;
+using Taxi.Infrastructure.Settings;
 
 public class ApplicationDbContextInitialiser(
     ILogger<ApplicationDbContextInitialiser> logger,
     AppDbContext context,
     UserManager<AppUser> userManager,
-    RoleManager<IdentityRole> roleManager)
+    RoleManager<IdentityRole> roleManager,
+    IOptions<SeedSettings> seedSettings)
 {
     private readonly ILogger<ApplicationDbContextInitialiser> logger = logger;
     private readonly AppDbContext context = context;
     private readonly UserManager<AppUser> userManager = userManager;
     private readonly RoleManager<IdentityRole> roleManager = roleManager;
+    private readonly SeedSettings seedSettings = seedSettings.Value;
 
     public async Task InitialiseAsync()
     {
@@ -59,23 +63,17 @@ public class ApplicationDbContextInitialiser(
 
     private async Task TrySeedAsync()
     {
-        // 1. Seed Roles
+        // 1. Roles — not secret, always present so role checks never reference a missing role.
         if (!await this.roleManager.RoleExistsAsync("Manager"))
         {
-            await this.roleManager.CreateAsync(new IdentityRole("Manager"));
+            EnsureSucceeded(await this.roleManager.CreateAsync(new IdentityRole("Manager")), "create role Manager");
         }
 
-        // 2. Seed Manager
-        var managerEmail = "admin@taxi.com";
-        if (await this.userManager.FindByEmailAsync(managerEmail) == null)
-        {
-            var manager = new AppUser { UserName = managerEmail, Email = managerEmail, EmailConfirmed = true };
-            await this.userManager.CreateAsync(manager, "Admin123!");
-            await this.userManager.AddToRoleAsync(manager, "Manager");
-        }
+        // 2. Bootstrap admin — only when Seed:Admin:Email and Seed:Admin:Password are configured.
+        await this.SeedUserAsync(this.seedSettings.Admin, "Manager");
 
-        // 3. Seed Cars
-        if (!await this.context.Cars.AnyAsync())
+        // 3. Sample data — opt-in, so a fresh staging or production database starts empty.
+        if (this.seedSettings.SampleData && !await this.context.Cars.AnyAsync())
         {
             var carResult = Car.Create(
                 Guid.NewGuid(),
@@ -89,6 +87,36 @@ public class ApplicationDbContextInitialiser(
                 this.context.Cars.Add(carResult.Value);
                 await this.context.SaveChangesAsync();
             }
+        }
+    }
+
+    private async Task SeedUserAsync(SeedUserSettings settings, string role)
+    {
+        if (!settings.IsConfigured)
+        {
+            this.logger.LogInformation("No seed account configured for role {Role}; skipping.", role);
+            return;
+        }
+
+        if (await this.userManager.FindByEmailAsync(settings.Email!) is not null)
+        {
+            return;
+        }
+
+        var user = new AppUser { UserName = settings.Email, Email = settings.Email, EmailConfirmed = true };
+
+        EnsureSucceeded(await this.userManager.CreateAsync(user, settings.Password!), $"create seed user for role {role}");
+        EnsureSucceeded(await this.userManager.AddToRoleAsync(user, role), $"add seed user to role {role}");
+
+        this.logger.LogInformation("Seeded {Role} account.", role);
+    }
+
+    private static void EnsureSucceeded(IdentityResult result, string operation)
+    {
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Seeding failed to {operation}: {string.Join("; ", result.Errors.Select(e => e.Description))}");
         }
     }
 }

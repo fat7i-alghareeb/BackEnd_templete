@@ -440,7 +440,8 @@ dotnet run --project src/Taxi.Api           # migrates + seeds on startup outsid
 
 Then exercise the endpoints from `requests/requests.http`, or:
 
-1. `POST /api/token/generate` — `admin@taxi.com` / `Admin123!` → 200 + `TokenResponse`.
+1. `POST /api/token/generate` — `admin@taxi.com` / `Admin123!` (the Development `Seed:Admin`
+   account) → 200 + `TokenResponse`.
 2. `POST /api/v1/cars` with the bearer token → 201, `Location: /api/v1/cars/{guid}`.
 3. `GET /api/v1/cars/{id}` twice → second call logs `Checking cache for GetCarByIdQuery`.
 4. `GET /api/v1/cars` with `Accept-Language: ar`, then `en` → different `description`.

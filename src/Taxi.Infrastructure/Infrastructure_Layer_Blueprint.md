@@ -226,7 +226,7 @@ Values come from `IUser` (implemented in the **API** layer as `CurrentUser`) and
 |---|---|
 | `InitialiseAsync` | `Database.MigrateAsync()` when the provider is Npgsql. Logs and rethrows on failure. |
 | `SeedAsync` | Delegates to `TrySeedAsync` with logging. |
-| `TrySeedAsync` | Creates the `Manager` role, the `admin@taxi.com` / `Admin123!` user (`EmailConfirmed = true`), and one sample `Car` — each guarded by an existence check, so it is idempotent. |
+| `TrySeedAsync` | Creates the roles; the `Seed:Admin` account (`EmailConfirmed = true`) only when both its email and password are configured; and one sample `Car` only when `Seed:SampleData` is `true`. Each step is guarded by an existence check, so it is idempotent, and a failed `IdentityResult` throws instead of being ignored. |
 | `ResetDatabaseAsync` | **Destructive.** `EnsureDeletedAsync` then `MigrateAsync`. |
 
 **Who calls it:** `Program.cs` → `app.ApplyMigrationsWithRetryAsync()`, which lives in
@@ -238,6 +238,12 @@ API survives starting before PostgreSQL is ready. Migration on startup is gated 
 `ApplyMigrationsWithRetryAsync` is the single entry point. An older retry-free
 `InitialiserExtensions.InitialiseDatabaseAsync` used to sit here unused and has been removed —
 do not reintroduce a second path.
+
+**Seed configuration** (`SeedSettings`, section `Seed`) has no defaults in `appsettings.json`:
+an environment seeds nothing unless it says so. `appsettings.Development.json` supplies
+`admin@taxi.com` / `Admin123!` and `SampleData: true`; production compose passes
+`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` from `.env` when you want a bootstrap account. Never
+commit real credentials to an `appsettings.*.json`.
 
 Seeding uses the real `Car.Create` factory and checks `IsSuccess` — seed data goes through the same
 invariants as user input.

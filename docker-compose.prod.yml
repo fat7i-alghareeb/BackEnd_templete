@@ -23,6 +23,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=TaxiDb;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       JwtSettings__Secret: ${JWT_SECRET}
+      # Optional bootstrap Manager account. Leave unset to seed no user.
+      Seed__Admin__Email: ${SEED_ADMIN_EMAIL:-}
+      Seed__Admin__Password: ${SEED_ADMIN_PASSWORD:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://seq:5341/ingest/otlp/v1/traces
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     volumes:

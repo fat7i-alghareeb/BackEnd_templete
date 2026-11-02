@@ -390,7 +390,7 @@ stateDiagram-v2
 | **Refresh token** | stored in the database, **one live token per user**, 7-day expiry, rotated on every refresh |
 | **Roles (RBAC)** | ASP.NET Identity roles are written into the JWT as `role` claims, ready for `[Authorize(Roles = "...")]` |
 | **Current user** | `IUser` gives handlers the user id; the id never comes from a request body |
-| **Seed** | first run creates the `Manager` role and `admin@taxi.com` / `Admin123!` |
+| **Seed** | first run creates the roles; Development also seeds `admin@taxi.com` / `Admin123!` from `Seed:Admin` — other environments only when configured |
 
 > [!CAUTION]
 > The development JWT secret and the seeded admin password are public placeholders. Replace
