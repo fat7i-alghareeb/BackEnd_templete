@@ -24,6 +24,7 @@
     <Project Path="src/Taxi.Infrastructure/Taxi.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Taxi.Api.IntegrationTests/Taxi.Api.IntegrationTests.csproj" />
     <Project Path="tests/Taxi.Application.UnitTests/Taxi.Application.UnitTests.csproj" />
     <Project Path="tests/Taxi.ArchitectureTests/Taxi.ArchitectureTests.csproj" />
     <Project Path="tests/Taxi.Domain.UnitTests/Taxi.Domain.UnitTests.csproj" />

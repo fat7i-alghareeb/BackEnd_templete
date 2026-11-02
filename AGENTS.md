@@ -76,8 +76,9 @@ codes, and Contracts is the only project the Domain, the API and the Client can 
 **Never** add a reference that reverses one of these arrows.
 
 Tests live in `tests/Taxi.Domain.UnitTests`, `tests/Taxi.Application.UnitTests` (handlers,
-validators, mappers, behaviours) and `tests/Taxi.ArchitectureTests`, which **fails the build if a
-type breaks one of these arrows** or the conventions in §2 (NetArchTest).
+validators, mappers, behaviours), `tests/Taxi.ArchitectureTests`, which **fails the build if a
+type breaks one of these arrows** or the conventions in §2 (NetArchTest), and
+`tests/Taxi.Api.IntegrationTests` (`WebApplicationFactory` + Testcontainers PostgreSQL; needs Docker).
 
 ---
 
@@ -178,6 +179,8 @@ Work outside-in through this list. Each row names the real `Car` file to copy.
 | 14 | `dotnet ef migrations add Add<X> -p src/Taxi.Infrastructure -s src/Taxi.Api` | — |
 | 15 | `src/Taxi.Api/Controllers/<Plural>Controller.cs` | `Controllers/CarsController.cs` |
 | 16 | `tests/Taxi.Domain.UnitTests/<Plural>/<X>Tests.cs` — cover every guard | `Cars/CarTests.cs` |
+| 16a | `tests/Taxi.Application.UnitTests/Features/<Plural>/` handler tests, `Validators/` | `Features/Cars/CarCommandHandlerTests.cs` |
+| 16b | `tests/Taxi.Api.IntegrationTests/Features/<Plural>Tests.cs` — the HTTP contract end to end | `Features/CarsTests.cs` |
 | 17 | `requests/requests.http` — add calls for the new endpoints | existing car calls |
 
 Steps 8 and 9 are per use case — repeat for `Update`, `Remove`, `GetAll`, etc.
@@ -443,7 +446,7 @@ outermost so no other behaviour's exception goes unlogged, and `ValidationBehavi
 
 ```powershell
 dotnet build Taxi_Server.slnx -c Debug      # must be clean; StyleCop runs here
-dotnet test Taxi_Server.slnx                # 45 tests today
+dotnet test Taxi_Server.slnx                # 153 tests today; the integration suite needs Docker
 dotnet list package --vulnerable --include-transitive
 npx markdownlint-cli2                       # if you touched any .md
 docker compose up -d postgres

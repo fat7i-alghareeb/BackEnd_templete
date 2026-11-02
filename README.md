@@ -42,7 +42,7 @@
 | 🐘 | **PostgreSQL + EF Core 10** | Migrations with retry, audit stamping, soft delete, `xmin` concurrency, transactional outbox for domain events |
 | 🚀 | **HybridCache + Redis** | Opt-in query caching, split by language, cleared by tags; Redis L2 shares it across instances |
 | 📈 | **Observability** | Serilog, OpenTelemetry, Seq, Prometheus and Grafana, all started by Docker Compose |
-| 🧪 | **Tests + CI** | xUnit suites, StyleCop on every build, GitHub Actions build and test |
+| 🧪 | **Tests + CI** | Unit, architecture and Testcontainers integration suites; StyleCop on every build; GitHub Actions |
 | 📚 | **Docs + workflow** | Per-layer blueprints, REST naming rules, a 17-step feature recipe, AI prompt templates |
 
 ## 🧅 Architecture
@@ -302,7 +302,12 @@ dotnet list package --vulnerable --include-transitive
 | Suite | Covers |
 |:--|:--|
 | `Taxi.Domain.UnitTests` | `Car` and `RefreshToken` factory guards, `Result<T>` conversions |
-| `Taxi.Application.UnitTests` | MediatR pipeline order, `Result<T>` cache serialization |
+| `Taxi.Application.UnitTests` | handlers (EF InMemory + NSubstitute), validators, mappers, `CachingBehavior`, pipeline order, cache serialization |
+| `Taxi.ArchitectureTests` | layer arrows and conventions from `AGENTS.md`, enforced with NetArchTest |
+| `Taxi.Api.IntegrationTests` | the real API against PostgreSQL in Docker (Testcontainers): auth, RBAC, localization, caching, soft delete, concurrency, idempotency, outbox, uploads, rate limiting, health |
+
+The integration suite needs a running Docker daemon; everything else runs anywhere. Run one suite
+with `dotnet test tests/<Project>`.
 
 StyleCop runs as part of every build, and package versions are managed centrally in
 `Directory.Packages.props`.
