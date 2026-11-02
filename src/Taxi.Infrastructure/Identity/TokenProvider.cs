@@ -5,16 +5,18 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Application.Features.Identity.Dtos;
 using Taxi.Domain.Common.Results;
 using Taxi.Domain.Identity;
+using Taxi.Infrastructure.Settings;
 
-public class TokenProvider(IConfiguration configuration, IAppDbContext context) : ITokenProvider
+public class TokenProvider(IOptions<JwtSettings> jwtSettings, IAppDbContext context, TimeProvider timeProvider) : ITokenProvider
 {
-    private readonly IConfiguration configuration = configuration;
+    private readonly JwtSettings jwtSettings = jwtSettings.Value;
+    private readonly TimeProvider timeProvider = timeProvider;
     private readonly IAppDbContext context = context;
 
     public async Task<Result<TokenResponse>> GenerateJwtTokenAsync(AppUserDto user, CancellationToken ct = default)
@@ -34,11 +36,11 @@ public class TokenProvider(IConfiguration configuration, IAppDbContext context) 
         var tokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.configuration["JwtSettings:Secret"]!)),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.jwtSettings.Secret)),
             ValidateIssuer = true,
-            ValidIssuer = this.configuration["JwtSettings:Issuer"],
+            ValidIssuer = this.jwtSettings.Issuer,
             ValidateAudience = true,
-            ValidAudience = this.configuration["JwtSettings:Audience"],
+            ValidAudience = this.jwtSettings.Audience,
             ValidateLifetime = false, // Ignore token expiration
             ClockSkew = TimeSpan.Zero
         };
@@ -62,13 +64,8 @@ public class TokenProvider(IConfiguration configuration, IAppDbContext context) 
 
     private async Task<Result<TokenResponse>> CreateAsync(AppUserDto user, CancellationToken ct = default)
     {
-        var jwtSettings = this.configuration.GetSection("JwtSettings");
-
-        var issuer = jwtSettings["Issuer"]!;
-        var audience = jwtSettings["Audience"]!;
-        var key = jwtSettings["Secret"]!;
-
-        var expires = DateTime.UtcNow.AddMinutes(int.Parse(jwtSettings["TokenExpirationInMinutes"]!));
+        var now = this.timeProvider.GetUtcNow();
+        var expires = now.AddMinutes(this.jwtSettings.TokenExpirationInMinutes);
 
         var claims = new List<Claim>
         {
@@ -84,11 +81,11 @@ public class TokenProvider(IConfiguration configuration, IAppDbContext context) 
         var descriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = expires,
-            Issuer = issuer,
-            Audience = audience,
+            Expires = expires.UtcDateTime,
+            Issuer = this.jwtSettings.Issuer,
+            Audience = this.jwtSettings.Audience,
             SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.jwtSettings.Secret)),
                 SecurityAlgorithms.HmacSha256Signature),
         };
 
@@ -104,7 +101,7 @@ public class TokenProvider(IConfiguration configuration, IAppDbContext context) 
             Guid.NewGuid(),
             GenerateRefreshToken(),
             user.UserId,
-            DateTime.UtcNow.AddDays(7));
+            now.AddDays(this.jwtSettings.RefreshTokenExpirationInDays));
 
         if (refreshTokenResult.IsError)
         {

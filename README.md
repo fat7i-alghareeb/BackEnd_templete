@@ -135,7 +135,9 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 |:--|:--|:--|
 | `Database:ApplyMigrationsOnStartup` | `true` outside Production | apply migrations and seed on startup, with 5 retries |
 | `Database:ResetOnStartup` | `false` | drop and recreate the database (Development only) |
-| `JwtSettings:TokenExpirationInMinutes` | `60` | access token lifetime |
+| `JwtSettings:Secret` | *(blank)* | HMAC key; the host refuses to start unless it is at least 32 characters |
+| `JwtSettings:TokenExpirationInMinutes` | `60` | access token lifetime (1–1440) |
+| `JwtSettings:RefreshTokenExpirationInDays` | `7` | refresh token lifetime (1–365) |
 
 </details>
 

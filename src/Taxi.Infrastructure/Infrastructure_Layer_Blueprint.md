@@ -297,9 +297,19 @@ through `IOptions<AppSettings>` — or, in `AddConfiguredCors`, read directly at
 `configuration.GetSection("AppSettings").Get<AppSettings>()`, which is acceptable in the
 composition root only.
 
-`JwtSettings` and `ConnectionStrings:DefaultConnection` are **not** bound to a settings class —
-`TokenProvider` and `AddInfrastructure` read `IConfiguration` directly. Both are blank in
-`appsettings.json` on purpose; supply them via user secrets, environment variables or `.env`.
+`JwtSettings` is bound to a typed class (`Settings/JwtSettings.cs`) with
+`ValidateDataAnnotations().ValidateOnStart()`: `Secret` is required and at least 32 characters,
+`Issuer` and `Audience` are required, and the access/refresh lifetimes are range-checked. A bad
+value stops the host at boot with an `OptionsValidationException` instead of failing on the first
+token request. The JwtBearer handler is configured from the same `IOptions<JwtSettings>` through
+`AddOptions<JwtBearerOptions>(...).Configure<IOptions<JwtSettings>>`, and `TokenProvider` consumes
+it too — nothing reads `JwtSettings:*` from `IConfiguration` directly.
+
+`ConnectionStrings:DefaultConnection` is read once in `AddInfrastructure`, which throws a
+descriptive `InvalidOperationException` when it is missing or blank.
+
+Both the secret and the connection string are blank in `appsettings.json` on purpose; supply them
+via user secrets, environment variables or `.env`.
 
 `ForwardedHeadersSettings` lives in the **API** project, since forwarded headers are an HTTP
 concern.

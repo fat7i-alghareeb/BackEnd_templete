@@ -257,10 +257,11 @@ share one context and one transaction.
   Production.
 - **No repositories, no Unit of Work wrapper.** `IAppDbContext` exposes `DbSet<T>` directly;
   `DbSet` is the repository and `SaveChangesAsync` is the unit of work.
-- Auth is JWT bearer, HMAC-SHA256, configured from the `JwtSettings` section. `TokenProvider`
-  issues the access token and rotates the refresh token (deletes the user's existing rows, inserts
-  a new 7-day one). Authorization is `[Authorize]` on controllers/actions; `IIdentityService`
-  wraps `UserManager` so the Application layer never sees ASP.NET Identity types.
+- Auth is JWT bearer, HMAC-SHA256, configured from the typed, start-validated `JwtSettings`
+  options. `TokenProvider` issues the access token and rotates the refresh token (deletes the
+  user's existing rows, inserts a new one living `RefreshTokenExpirationInDays`, default 7).
+  Authorization is `[Authorize]` on controllers/actions; `IIdentityService` wraps `UserManager`
+  so the Application layer never sees ASP.NET Identity types.
 
 ---
 

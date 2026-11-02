@@ -359,7 +359,7 @@ Adding a version means adding it to the `versions` array **and** to the controll
 | Section | Consumed by | Note |
 |---|---|---|
 | `ConnectionStrings:DefaultConnection` | `AddInfrastructure` | **Blank in `appsettings.json`** — user secrets / env / `.env` |
-| `JwtSettings` | `AddInfrastructure`, `TokenProvider` | `Secret` blank on purpose |
+| `JwtSettings` | `JwtSettings` options (validated on start), JwtBearer, `TokenProvider` | `Secret` blank on purpose; boot fails unless ≥ 32 chars |
 | `AppSettings` | CORS, `DefaultLanguage` | `CorsPolicyName`, `AllowedOrigins` |
 | `ForwardedHeaders` | `AddAppForwardedHeaders` | `KnownProxies` / `KnownIPNetworks` parsed with clear failure messages; `AllowAllInDevelopment` relaxes them locally only |
 | `Database:ApplyMigrationsOnStartup` | `Program.cs` | Defaults to on outside Production |
