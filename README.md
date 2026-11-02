@@ -11,6 +11,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Architecture](https://img.shields.io/badge/Clean_Architecture-CQRS-7C3AED)
 ![i18n](https://img.shields.io/badge/i18n-EN_%7C_AR-F59E0B)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22C55E)](LICENSE)
 
 **A reusable .NET 10 backend template with Clean Architecture and CQRS,<br/>ready for new APIs with authentication, caching, logging and testing.**
 
@@ -359,6 +360,11 @@ opens grouped weekly updates for NuGet, GitHub Actions and the base images.
 <img src="https://img.shields.io/badge/xUnit-34D399?style=flat-square" alt="xUnit"/>
 <img src="https://img.shields.io/badge/StyleCop-475569?style=flat-square" alt="StyleCop"/>
 </p>
+
+## 📄 License
+
+Released under the [MIT License](LICENSE). Use it as the starting point for your own projects,
+commercial or not; keep the copyright notice.
 
 <div align="center">
 
