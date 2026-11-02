@@ -66,11 +66,17 @@ src/Taxi.Application/
 │   ├── Models/
 │   │   ├── PaginatedList.cs         paging envelope returned by list queries
 │   │   └── Paging.cs                default / max page size
+│   ├── Settings/
+│   │   └── ClientAppSettings.cs     front-end URLs the account emails link to
 │   ├── Security/
 │   │   ├── Policies.cs              named authorization policies
 │   │   └── Roles.cs                 role names, seeded on startup
 │   └── UtilityService.cs            static helpers; not an abstraction, so not in Interfaces/
 ├── Features/
+│   ├── Account/                     self-service: register, confirm, reset, change password, logout
+│   │   ├── Commands/<UseCase>/{<UseCase>Command,…Handler,…Validator}.cs
+│   │   └── Emails/AccountEmails.cs  builds localized EmailMessages
+│   ├── Users/Commands/SetUserRoles/ Manager-only role assignment
 │   ├── Cars/
 │   │   ├── Commands/
 │   │   │   ├── CreateCar/{CreateCarCommand,CreateCarCommandHandler,CreateCarCommandValidator}.cs
@@ -416,8 +422,9 @@ public static class CarMapper
 | Interface | Implemented by | For |
 |---|---|---|
 | `IAppDbContext` | `AppDbContext` (Infrastructure) | `DbSet<Car>`, `DbSet<RefreshToken>`, `SaveChangesAsync` |
-| `IIdentityService` | `IdentityService` | Role checks, policy checks, authenticate, fetch user — wraps `UserManager<AppUser>` so Identity types never reach a handler |
+| `IIdentityService` | `IdentityService` | Role checks, policy checks, authenticate, fetch user, create/confirm/reset/change password, set roles — wraps `UserManager<AppUser>` so Identity types never reach a handler. Account tokens cross the boundary Base64Url-encoded; `IdentityResult` errors come back as localized, per-field `Error`s |
 | `ITokenProvider` | `TokenProvider` | Issue a JWT + refresh token, read a principal from an expired token |
+| `ITextLocalizer` | `TextLocalizer` (**API layer**) | Resource-file text (email subjects/bodies) in the request's language |
 | `IEmailSender` | `LoggingEmailSender` / `SmtpEmailSender` | Send an `EmailMessage`; the implementation is picked by `Email:Provider` |
 | `IUser` | `CurrentUser` (**API layer**) | The current user id from the JWT |
 | `ILanguageContext` | `LanguageContext` (**API layer**) | The language resolved from `Accept-Language` |

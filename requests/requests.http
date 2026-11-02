@@ -59,6 +59,72 @@ GET {{baseUrl}}/api/token/user-info
 Authorization: Bearer {{token}}
 
 ### ---------------------------------------------------------------------------
+### 1d. Account self-service (all on the strict Auth rate limit)
+### With Email:Provider=Log the emails (and their links) are written to the API console;
+### under docker compose they land in Mailpit: http://localhost:8025
+
+### Register → 202 (also 202 if the email already exists — no enumeration)
+POST {{baseUrl}}/api/account/register
+Content-Type: application/json
+Accept-Language: {{lang}}
+
+{
+  "email": "rider@taxi.com",
+  "password": "Rider123!"
+}
+
+### Confirm — paste userId and token from the emailed link → 204
+POST {{baseUrl}}/api/account/confirm-email
+Content-Type: application/json
+
+{
+  "userId": "<userId from the link>",
+  "token": "<token from the link>"
+}
+
+### Forgot password → 202 (only confirmed accounts get an email)
+POST {{baseUrl}}/api/account/forgot-password
+Content-Type: application/json
+Accept-Language: ar
+
+{
+  "email": "rider@taxi.com"
+}
+
+### Reset password with the emailed token → 204, revokes every refresh token
+POST {{baseUrl}}/api/account/reset-password
+Content-Type: application/json
+
+{
+  "email": "rider@taxi.com",
+  "token": "<token from the link>",
+  "newPassword": "Rider456!"
+}
+
+### Change own password → 204 (wrong current password → 400 keyed "CurrentPassword")
+POST {{baseUrl}}/api/account/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "Admin123!",
+  "newPassword": "Admin123!"
+}
+
+### Logout → 204: the refresh token is revoked; the access token lives until it expires
+POST {{baseUrl}}/api/account/logout
+Authorization: Bearer {{token}}
+
+### Manager only: replace a user's roles → 204 (own Manager role cannot be removed → 409)
+PUT {{baseUrl}}/api/v1/users/<userId>/roles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "roles": ["User"]
+}
+
+### ---------------------------------------------------------------------------
 ### 2. Cars — the reference feature
 
 ### 2a. List cars, paged (cached per page: GetCarsQuery, tag "car", 10 min, culture-aware)

@@ -32,7 +32,16 @@ control over casing or hyphenation.
 | Resource | Route |
 |---|---|
 | Cars | `api/v{version:apiVersion}/cars` |
+| Users (administration) | `api/v{version:apiVersion}/users` |
 | Auth (version-neutral) | `api/token` |
+| Account self-service (version-neutral) | `api/account` |
+
+`IdentityController` (`api/token`) and `AccountController` (`api/account`) are
+`[ApiVersionNeutral]`. `AccountController`'s actions (`register`, `confirm-email`,
+`forgot-password`, `reset-password`, `change-password`, `logout`, …) are the one sanctioned
+exception to rule 1: they are operations on the caller's own credentials, not resources, so they
+are `POST` + a kebab-case verb. Endpoints that take an email answer **202** whether or not the
+account exists, so they cannot be used to enumerate users.
 
 `IdentityController` is `[Route("api/token")]` + `[ApiVersionNeutral]`. Authentication endpoints
 are deliberately outside the versioning scheme — a client that cannot obtain a token cannot

@@ -31,6 +31,20 @@ public static class LocalizationKeys
         public const string InvalidLoginAttempt = "Auth.Login.Invalid";
     }
 
+    public static class Account
+    {
+        public const string TokenInvalid = "Account.Token.Invalid";
+        public const string CurrentPasswordInvalid = "Account.CurrentPassword.Invalid";
+        public const string CannotRemoveOwnManagerRole = "Account.Roles.CannotRemoveOwnManager";
+        public const string IdentityFailed = "Account.Identity.Failed";
+        public const string ConfirmEmailSubject = "Account.Email.Confirm.Subject";
+        public const string ConfirmEmailBody = "Account.Email.Confirm.Body";
+        public const string ResetPasswordSubject = "Account.Email.ResetPassword.Subject";
+        public const string ResetPasswordBody = "Account.Email.ResetPassword.Body";
+        public const string AlreadyRegisteredSubject = "Account.Email.AlreadyRegistered.Subject";
+        public const string AlreadyRegisteredBody = "Account.Email.AlreadyRegistered.Body";
+    }
+
     public static class Concurrency
     {
         public const string Conflict = "Concurrency.Conflict";
@@ -56,6 +70,19 @@ public static class LocalizationKeys
         public const string PageInvalid = "Validation.Page.Invalid";
         public const string PageSizeInvalid = "Validation.PageSize.Invalid";
         public const string SearchTooLong = "Validation.Search.TooLong";
+        public const string EmailTooLong = "Validation.Email.TooLong";
+        public const string NewPasswordRequired = "Validation.NewPassword.Required";
+        public const string CurrentPasswordRequired = "Validation.CurrentPassword.Required";
+        public const string PasswordTooShort = "Validation.Password.TooShort";
+        public const string PasswordRequiresDigit = "Validation.Password.RequiresDigit";
+        public const string PasswordRequiresLower = "Validation.Password.RequiresLower";
+        public const string PasswordRequiresUpper = "Validation.Password.RequiresUpper";
+        public const string PasswordRequiresNonAlphanumeric = "Validation.Password.RequiresNonAlphanumeric";
+        public const string PasswordRequiresUniqueChars = "Validation.Password.RequiresUniqueChars";
+        public const string TokenRequired = "Validation.Token.Required";
+        public const string UserIdRequired = "Validation.UserId.Required";
+        public const string RolesRequired = "Validation.Roles.Required";
+        public const string RoleInvalid = "Validation.Role.Invalid";
         public const string SortByInvalid = "Validation.SortBy.Invalid";
         public const string SortDirectionInvalid = "Validation.SortDirection.Invalid";
     }

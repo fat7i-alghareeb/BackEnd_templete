@@ -197,6 +197,21 @@ reachable unauthenticated, and the fallback policy would otherwise reject them â
 |---|---|
 | `CanReadCars` | `Manager`, `User` |
 | `CanManageCars` | `Manager` |
+| `CanManageUsers` | `Manager` |
+
+### `AccountController` and `UsersController`
+
+`AccountController` (`api/account`, version-neutral) is self-service: `register`, `confirm-email`,
+`resend-confirmation`, `forgot-password`, `reset-password` are `[AllowAnonymous]`;
+`change-password` and `logout` require any authenticated user. All but `logout` use
+`RateLimitPolicies.Auth`. Endpoints that take an email answer 202 regardless of whether the
+account exists. Emails are built in Application (`Features/Account/Emails/AccountEmails.cs`) from
+resource-file text through `ITextLocalizer` (implemented here as `TextLocalizer`), so they follow
+`Accept-Language`, and link to the pages configured in `ClientApp:*`.
+
+`UsersController` (`api/v1/users`, `CanManageUsers`) has `PUT {userId}/roles`, which replaces the
+role set; a Manager cannot remove `Manager` from their own account (409). New roles apply from the
+user's next token.
 
 Endpoints reference policies, never roles, so granting a capability to another role is a one-line
 change in `AddAppAuthorization`. Infrastructure endpoints mapped in `Program.cs` (`/openapi`,

@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 
 using Taxi.Application.Common.Caching;
 using Taxi.Application.Common.Interfaces;
+using Taxi.Application.Common.Settings;
 using Taxi.Infrastructure.Data;
 using Taxi.Infrastructure.Data.Interceptors;
 using Taxi.Infrastructure.Email;
@@ -27,6 +28,10 @@ public static class DependencyInjection
     {
         services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
         services.Configure<SeedSettings>(configuration.GetSection(SeedSettings.SectionName));
+        services.AddOptions<ClientAppSettings>()
+            .Bind(configuration.GetSection(ClientAppSettings.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         services.AddSingleton(TimeProvider.System);
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");

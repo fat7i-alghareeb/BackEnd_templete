@@ -12,4 +12,7 @@ public static class Policies
 
     /// <summary>Create, update and delete cars. Granted to <see cref="Roles.Manager"/>.</summary>
     public const string CanManageCars = nameof(CanManageCars);
+
+    /// <summary>Administer accounts (assign roles). Granted to <see cref="Roles.Manager"/>.</summary>
+    public const string CanManageUsers = nameof(CanManageUsers);
 }

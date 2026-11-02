@@ -141,6 +141,7 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 | `Database:ResetOnStartup` | `false` | drop and recreate the database (Development only) |
 | `Kestrel:Limits:MaxRequestBodySize` | `1048576` | request body cap in bytes; larger bodies get 413 |
 | `Email:Provider` | `Log` | `Log` writes emails to the log; `Smtp` sends via `Email:Smtp:*` (compose dev uses Mailpit at `:8025`) |
+| `ClientApp:ConfirmEmailUrl` / `ResetPasswordUrl` | `http://localhost:5002/account/…` | front-end pages the account emails link to (`?userId=&token=` / `?email=&token=`) |
 | `ConnectionStrings:Redis` | *(blank)* | HybridCache L2; blank = in-process cache only (single instance) |
 | `JwtSettings:Secret` | *(blank)* | HMAC key; the host refuses to start unless it is at least 32 characters |
 | `JwtSettings:TokenExpirationInMinutes` | `60` | access token lifetime (1–1440) |
@@ -161,11 +162,19 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 | ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/token/generate` | | Sign in, get access + refresh token |
 | ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/token/refresh-token` | | Swap an expired access token + refresh token for new ones |
 | ![GET](https://img.shields.io/badge/GET-10B981) | `/api/token/user-info` | 🔒 | Current user, roles and claims |
-| ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars` | 🔒 | List cars (cached per language) |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/register` | | Create an account (role `User`); a confirmation email follows. Always 202 |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/confirm-email` | | Confirm with the emailed `userId` + `token` |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/resend-confirmation` | | Send the confirmation email again. Always 202 |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/forgot-password` | | Email a reset link. Always 202 |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/reset-password` | | Set a new password with the emailed token; signs out every session |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/change-password` | 🔒 | Change own password; revokes refresh tokens |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/logout` | 🔒 | Revoke the refresh token |
+| ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/users/{userId}/roles` | 🔒 Manager | Replace a user's roles |
+| ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars` | 🔒 | List cars — paged, filtered, sorted (cached per language) |
 | ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars/{id}` | 🔒 | One car (cached per language) |
-| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/v1/cars` | 🔒 | Create a car |
-| ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/cars/{id}` | 🔒 | Update a car |
-| ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/cars/{id}` | 🔒 | Remove a car |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/v1/cars` | 🔒 Manager | Create a car |
+| ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/cars/{id}` | 🔒 Manager | Update a car |
+| ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/cars/{id}` | 🔒 Manager | Soft-delete a car |
 
 Errors always come back as `ProblemDetails`, translated by `Accept-Language`:
 

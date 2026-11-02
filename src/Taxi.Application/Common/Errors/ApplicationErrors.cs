@@ -33,6 +33,14 @@ public static class ApplicationErrors
         code: LocalizationKeys.Auth.InvalidLoginAttempt,
         description: "Email or password is incorrect.");
 
+    public static Error AccountTokenInvalid => Error.ValidationForProperty(
+        propertyName: "Token",
+        code: LocalizationKeys.Account.TokenInvalid);
+
+    public static Error CannotRemoveOwnManagerRole => Error.Conflict(
+        code: LocalizationKeys.Account.CannotRemoveOwnManagerRole,
+        description: "You cannot remove the Manager role from your own account.");
+
     public static Error TokenGenerationFailed => Error.Failure(
         code: LocalizationKeys.Auth.TokenGenerationFailed,
         description: "Failed to generate new JWT token.");

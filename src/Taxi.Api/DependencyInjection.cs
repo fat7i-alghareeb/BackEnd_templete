@@ -344,6 +344,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ILanguageContext, LanguageContext>();
         services.AddScoped<IUser, CurrentUser>();
+        services.AddScoped<ITextLocalizer, TextLocalizer>();
         services.AddHttpContextAccessor();
 
         return services;
@@ -360,7 +361,8 @@ public static class DependencyInjection
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
             .AddPolicy(Policies.CanReadCars, policy => policy.RequireRole(Roles.Manager, Roles.User))
-            .AddPolicy(Policies.CanManageCars, policy => policy.RequireRole(Roles.Manager));
+            .AddPolicy(Policies.CanManageCars, policy => policy.RequireRole(Roles.Manager))
+            .AddPolicy(Policies.CanManageUsers, policy => policy.RequireRole(Roles.Manager));
 
         return services;
     }
