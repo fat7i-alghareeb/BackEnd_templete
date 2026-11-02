@@ -397,7 +397,7 @@ HTTP request
   → UseRequestLocalization            resolves Accept-Language → CultureInfo
   → RequestLogContextMiddleware       pushes CorrelationId into Serilog
   → UseExceptionHandler               GlobalExceptionHandler → problem+json
-  → routing, CORS, rate limiter, authentication, authorization
+  → routing, CORS, authentication, rate limiter, authorization
   → CarsController action
   → ISender.Send(command|query)
       → LoggingBehaviour              IRequestPreProcessor; logs name + user id

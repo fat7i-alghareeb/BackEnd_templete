@@ -290,9 +290,9 @@ rate limiting · forwarded headers · OpenAPI documents.
 | 6 | `UseStaticFiles` | |
 | 7 | `UseSerilogRequestLogging` | One summary line per request |
 | 8 | `UseCors` | Before authentication, so preflight `OPTIONS` is not challenged |
-| 9 | `UseRateLimiter` | Before authentication, so brute force is throttled |
-| 10 | `UseAuthentication` | Decode the JWT |
-| 11 | `UseAuthorization` | Evaluate `[Authorize]` |
+| 9 | `UseAuthentication` | Decode the JWT |
+| 10 | `UseRateLimiter` | After authentication, so `RateLimitPolicies.Default` can partition by user id; before authorization and the endpoint, so anonymous credential endpoints are still throttled |
+| 11 | `UseAuthorization` | Evaluate `[Authorize]` and policies |
 
 `UseForwardedHeaders` runs earlier, in `Program.cs`, before anything reads the scheme or client IP.
 
@@ -301,8 +301,8 @@ but no endpoint ever carried `[OutputCache]`, so they were removed. All caching 
 MediatR `CachingBehavior`, keyed per query and partitioned by language — see the
 [Application blueprint](../Taxi.Application/Application_Layer_Blueprint.md).
 
-Rate limiting: one sliding window — 100 requests/minute, 6 segments, queue of 10, 429 on reject.
-It is global, not per-user or per-endpoint.
+Rate limiting: two named policies, `Default` (per user or IP) and `Auth` (per IP, on the
+credential endpoints) — see §15.3.
 
 ---
 
@@ -494,11 +494,19 @@ right now it is dead weight.
 OpenTelemetry is active, the W3C trace id is the more useful correlator — switching to
 `Activity.Current?.TraceId` would let a Seq log line and its trace be joined directly.
 
-### 15.3 Per-endpoint rate limiting
+### 15.3 Rate limiting
 
-The current limiter is a single global window. For a stricter policy on `/api/token/generate`
-(the brute-force target), add a named policy in `AddAppRateLimiting` and apply
-`[EnableRateLimiting("TokenPolicy")]` to the action. Partition by IP with
-`RateLimitPartition.GetFixedWindowLimiter(httpContext.Connection.RemoteIpAddress)` — but only
-after `UseForwardedHeaders` is correctly configured with `KnownProxies`, or every request behind a
-proxy shares one bucket.
+Two named policies live in `Infrastructure/RateLimiting/RateLimitPolicies.cs`, with limits bound
+from the `RateLimiting` configuration section (`RateLimitingSettings`, validated on start):
+
+| Policy | Applied by | Algorithm | Partition |
+|---|---|---|---|
+| `RateLimitPolicies.Default` | `[EnableRateLimiting]` on `ApiController`, so every controller inherits it | sliding window, 100/min, queue 10 | user id, else client IP |
+| `RateLimitPolicies.Auth` | `[EnableRateLimiting]` on each anonymous credential action (`GenerateToken`, `RefreshToken`, …) | fixed window, 10/min, no queue | client IP |
+
+An action-level attribute wins over the controller-level one, so a credential endpoint uses only
+`Auth`. Rejections return a localized 429 `ProblemDetails` (`LocalizationKeys.RateLimit.Exceeded`)
+with a `Retry-After` header.
+
+IP partitioning is only as good as `UseForwardedHeaders`: behind a proxy that is not listed in
+`ForwardedHeaders:KnownProxies` / `KnownIPNetworks`, every caller shares one bucket.

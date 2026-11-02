@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Security.Claims;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -20,6 +22,7 @@ using Serilog;
 
 using Taxi.Api;
 using Taxi.Api.Infrastructure;
+using Taxi.Api.Infrastructure.RateLimiting;
 using Taxi.Api.OpenApi.Transformers;
 using Taxi.Api.Services;
 using Taxi.Application.Common.Interfaces;
@@ -115,24 +118,66 @@ public static class DependencyInjection
         return services;
     }
 
+    /// <summary>
+    /// Registers the two named policies in <see cref="RateLimitPolicies"/>. Limits come from the
+    /// <c>RateLimiting</c> section through <see cref="RateLimitingSettings"/> and are read when the
+    /// limiter is first built, so test hosts can override them.
+    /// <para>
+    /// IP partitioning relies on <c>UseForwardedHeaders</c> resolving the real client address — behind
+    /// a proxy that is not listed in <c>ForwardedHeaders:KnownProxies</c>, every caller shares one bucket.
+    /// </para>
+    /// </summary>
+    /// <returns>The service collection, for chaining.</returns>
     public static IServiceCollection AddAppRateLimiting(this IServiceCollection services)
     {
-        services.AddRateLimiter(options =>
-        {
-            options.AddSlidingWindowLimiter("SlidingWindow", limiterOptions =>
+        services.AddOptions<RateLimitingSettings>()
+            .BindConfiguration(RateLimitingSettings.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddRateLimiter(_ => { });
+
+        services.AddOptions<RateLimiterOptions>()
+            .Configure<IOptions<RateLimitingSettings>>((options, settingsAccessor) =>
             {
-                limiterOptions.PermitLimit = 100;
-                limiterOptions.Window = TimeSpan.FromMinutes(1);
-                limiterOptions.SegmentsPerWindow = 6;
-                limiterOptions.QueueLimit = 10;
-                limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                limiterOptions.AutoReplenishment = true;
+                var settings = settingsAccessor.Value;
+
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.AddPolicy(RateLimitPolicies.Default, httpContext =>
+                    RateLimitPartition.GetSlidingWindowLimiter(
+                        partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                            ?? ClientIp(httpContext),
+                        factory: _ => new SlidingWindowRateLimiterOptions
+                        {
+                            PermitLimit = settings.Default.PermitLimit,
+                            Window = TimeSpan.FromSeconds(settings.Default.WindowSeconds),
+                            SegmentsPerWindow = settings.Default.SegmentsPerWindow,
+                            QueueLimit = settings.Default.QueueLimit,
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            AutoReplenishment = true,
+                        }));
+
+                // Credential endpoints are anonymous, so the only usable partition is the caller's IP.
+                // No queue: a brute-force attempt should be rejected, not delayed.
+                options.AddPolicy(RateLimitPolicies.Auth, httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: ClientIp(httpContext),
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = settings.Auth.PermitLimit,
+                            Window = TimeSpan.FromSeconds(settings.Auth.WindowSeconds),
+                            QueueLimit = 0,
+                            AutoReplenishment = true,
+                        }));
+
+                options.OnRejected = WriteRateLimitProblemAsync;
             });
 
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        });
-
         return services;
+
+        static string ClientIp(HttpContext httpContext) =>
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
     }
 
     public static IServiceCollection AddCustomProblemDetails(this IServiceCollection services)
@@ -361,10 +406,39 @@ public static class DependencyInjection
         app.UseStaticFiles();
         app.UseSerilogRequestLogging();
         app.UseCors(configuration["AppSettings:CorsPolicyName"]!);
-        app.UseRateLimiter();
         app.UseAuthentication();
+
+        // After authentication so RateLimitPolicies.Default can partition by user id; before
+        // authorization and the endpoint so anonymous credential endpoints are still throttled.
+        app.UseRateLimiter();
         app.UseAuthorization();
 
         return app;
+    }
+
+    private static async ValueTask WriteRateLimitProblemAsync(OnRejectedContext context, CancellationToken cancellationToken)
+    {
+        var httpContext = context.HttpContext;
+
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            httpContext.Response.Headers.RetryAfter =
+                ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+        }
+
+        var localizer = httpContext.RequestServices.GetRequiredService<IStringLocalizer<SharedResource>>();
+        var problemDetailsService = httpContext.RequestServices.GetRequiredService<IProblemDetailsService>();
+
+        httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+        await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+        {
+            HttpContext = httpContext,
+            ProblemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status429TooManyRequests,
+                Title = localizer[LocalizationKeys.RateLimit.Exceeded].Value,
+            },
+        });
     }
 }

@@ -31,6 +31,11 @@ public static class LocalizationKeys
         public const string InvalidLoginAttempt = "Auth.Login.Invalid";
     }
 
+    public static class RateLimit
+    {
+        public const string Exceeded = "RateLimit.Exceeded";
+    }
+
     public static class Validation
     {
         public const string EmailInvalid = "Validation.Email.Invalid";

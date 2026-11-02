@@ -213,7 +213,7 @@ sequenceDiagram
 - **Access token:** JWT signed with HMAC-SHA256, carrying the user id and `role` claims.
 - **Refresh token:** stored in the database, one live token per user, rotated on every refresh.
 - **RBAC:** controllers use `[Authorize]`; roles from ASP.NET Identity are ready for `[Authorize(Roles = "...")]`.
-- **Hardening:** CORS policy from config, forwarded-headers settings, and a sliding-window rate-limit policy ready to attach.
+- **Hardening:** CORS policy from config, forwarded-headers settings, and per-user / per-IP rate limiting with a stricter policy on the credential endpoints.
 
 ## 🌍 Localization
 

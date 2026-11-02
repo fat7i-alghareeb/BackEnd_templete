@@ -277,9 +277,12 @@ share one context and one transaction.
   the logs.
 - Middleware order (`UseCoreMiddlewares`): RequestLocalization → RequestLogContextMiddleware →
   ExceptionHandler → StatusCodePages → HttpsRedirection → StaticFiles → SerilogRequestLogging →
-  Cors → RateLimiter → Authentication → Authorization.
+  Cors → Authentication → RateLimiter → Authorization.
   `UseForwardedHeaders` runs earlier, directly in `Program.cs`.
-- Rate limiting: one sliding window, 100 requests/minute, 6 segments, queue of 10, 429 on reject.
+- Rate limiting: `RateLimitPolicies.Default` (sliding window, 100 requests/minute per user or IP,
+  inherited from `ApiController`) and `RateLimitPolicies.Auth` (fixed window, 10 requests/minute
+  per IP, on the anonymous credential endpoints). Limits come from the `RateLimiting` section;
+  rejections are a localized 429 with `Retry-After`.
 - OpenAPI transformers: `VersionInfoTransformer` (title/version), `BearerSecuritySchemeTransformer`
   (the `Bearer` scheme), `BearerSecurityOperationTransformer` (padlock only on endpoints that
   actually carry `[Authorize]` without `[AllowAnonymous]`), `AcceptLanguageOperationTransformer`.

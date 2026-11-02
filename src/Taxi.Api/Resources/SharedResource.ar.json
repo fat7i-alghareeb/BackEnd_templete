@@ -22,5 +22,6 @@
   "Validation.Make.Required": "نوع السيارة مطلوب.",
   "Validation.Model.Required": "طراز السيارة مطلوب.",
   "Validation.Year.Invalid": "يجب أن تكون سنة السيارة بين 1886 و 2026.",
-  "Validation.Description.Required": "وصف السيارة مطلوب."
+  "Validation.Description.Required": "وصف السيارة مطلوب.",
+  "RateLimit.Exceeded": "عدد كبير جدًا من الطلبات. يرجى المحاولة لاحقًا."
 }
