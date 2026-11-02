@@ -45,9 +45,7 @@ Taxi.Application ─────────────────────
 Taxi.Infrastructure ───────────────────────►  Taxi.Application
        ▲
        │
-Taxi.Api         ──────────────────────────►  Application, Contracts, Infrastructure, Client
-
-Taxi.Client      ──────────────────────────►  Taxi.Contracts
+Taxi.Api         ──────────────────────────►  Application, Contracts, Infrastructure
 ```
 
 | Layer | Project | Owns |
@@ -57,12 +55,11 @@ Taxi.Client      ─────────────────────
 | Use cases | `Taxi.Application` | Commands, queries, handlers, validators, DTOs, mappers, MediatR behaviours, the interfaces Infrastructure must satisfy |
 | Implementations | `Taxi.Infrastructure` | `AppDbContext`, EF configurations, interceptor, migrations, seeding, ASP.NET Identity, JWT, HybridCache registration |
 | Terminus | `Taxi.Api` | Controllers, middleware, OpenAPI transformers, `Error`→ProblemDetails translation, composition root |
-| Consumer | `Taxi.Client` | Blazor WebAssembly shell (see §9) |
 
 **`Taxi.Domain` references `Taxi.Contracts`.** This is a deliberate exception to the usual "Domain
 depends on nothing" rule: entity error codes are `LocalizationKeys` constants, and that registry
-must be visible to Domain, API and Client alike. **Do not "fix" it** — the full reasoning and every
-rejected alternative are in
+must be visible to Domain and API alike (and to any future .NET client). **Do not "fix" it** —
+the full reasoning and every rejected alternative are in
 [Domain blueprint §2](../src/Taxi.Domain/Domain_Layer_Blueprint.md).
 
 **Nothing references `Taxi.Api`.** `Taxi.Api` references `Taxi.Infrastructure` only to call
@@ -104,21 +101,23 @@ All four are provisioned by `docker-compose` and wired in `AddObservability()`.
 ### Known slack
 
 `Swashbuckle.AspNetCore` is referenced only for `UseSwaggerUI`; the OpenAPI document itself comes
-from `Microsoft.AspNetCore.OpenApi`. `Taxi.Client` is referenced by the API but never hosted —
-there is no `MapRazorComponents` call.
+from `Microsoft.AspNetCore.OpenApi`.
 
-Every other `PackageVersion` pin has a matching `PackageReference`.
+Every `PackageVersion` pin has a matching `PackageReference`. (The Blazor `Taxi.Client` scaffold
+was never hosted and has been removed; a front end is a separate deployment that calls this API.)
 
 ### Tests
 
 `tests/Taxi.Domain.UnitTests` covers the entity factories and `Result<T>`;
-`tests/Taxi.Application.UnitTests` pins the MediatR pipeline registration order and the
-`Result<T>` cache round trip. `dotnet test Taxi_Server.slnx` runs both.
+`tests/Taxi.Application.UnitTests` covers handlers, validators, mappers and behaviours;
+`tests/Taxi.ArchitectureTests` enforces the layer graph; `tests/Taxi.Api.IntegrationTests` runs
+the real API against PostgreSQL in Docker. `dotnet test Taxi_Server.slnx` runs all four.
 
 ### Orchestration
 
-`docker-compose.yml` (+ `.override.yml`, `.prod.yml`) provisions PostgreSQL, Seq, Prometheus
-and Grafana; `containers/` holds the Prometheus scrape config and Seq's data volume.
+`docker-compose.yml` (+ `.override.yml`, `.prod.yml`) provisions PostgreSQL, Redis, Seq, Prometheus
+and Grafana (plus Mailpit in development); `containers/` holds the Prometheus scrape config and
+Seq's data volume.
 `.env.example` documents the
 expected environment variables.
 
@@ -318,16 +317,7 @@ referenced, and no Seq sink is configured.
 
 ---
 
-## 12. `Taxi.Client`
-
-A Blazor WebAssembly project containing `Program.cs` (registering a named `HttpClient` called
-`TaxiServerClient` pointed at the host base address) and `wwwroot` static assets. No components,
-no auth handler, no hub client. `Taxi.Api` references the project but does not host it — there is
-no `MapRazorComponents` call. Treat it as a placeholder.
-
----
-
-## 13. Architectural rules
+## 12. Architectural rules
 
 1. Dependencies point inward. The table in §2 is the whole permitted graph.
 2. Business failures are `Result<T>` + `Error`. Exceptions mean the system broke.

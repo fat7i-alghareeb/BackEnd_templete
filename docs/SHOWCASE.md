@@ -159,13 +159,10 @@ flowchart LR
     APP["⚙️ Taxi.Application<br/><sub>commands · queries · behaviours</sub>"]
     DOM["💎 Taxi.Domain<br/><sub>entities · Result#lt;T#gt;</sub>"]
     CON["📜 Taxi.Contracts<br/><sub>DTOs · LocalizationKeys</sub>"]
-    CLI["🖥️ Taxi.Client<br/><sub>Blazor WASM shell</sub>"]
 
     API --> INF --> APP --> DOM --> CON
     API --> APP
     API --> CON
-    API -.-> CLI
-    CLI --> CON
 
     classDef api fill:#312E81,stroke:#818CF8,color:#fff
     classDef inf fill:#3B0764,stroke:#C084FC,color:#fff
@@ -191,7 +188,7 @@ flowchart LR
 
 > [!IMPORTANT]
 > `Taxi.Domain → Taxi.Contracts` is intentional. Error codes are `LocalizationKeys` constants, and
-> Contracts is the one project the Domain, the API and the Client can all see. The reasoning is in
+> Contracts is the one project the Domain and the API (and any .NET client) can all see. The reasoning is in
 > the [Domain blueprint](../src/Taxi.Domain/Domain_Layer_Blueprint.md).
 
 <img src="assets/divider.svg" alt="" width="100%"/>

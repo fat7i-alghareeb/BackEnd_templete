@@ -29,7 +29,7 @@ exist.
 
 ## 2. Dependency rules
 
-**References:** `Taxi.Application`, `Taxi.Contracts`, `Taxi.Infrastructure`, `Taxi.Client`.
+**References:** `Taxi.Application`, `Taxi.Contracts`, `Taxi.Infrastructure`.
 
 - **Application** — commands, queries, DTOs, and the `IUser` / `ILanguageContext` interfaces this
   layer implements.
@@ -37,8 +37,6 @@ exist.
 - **Infrastructure** — *only* for `AddInfrastructure(configuration)` and
   `ApplicationDbContextInitialiser` in the startup path. **No controller may reference an
   Infrastructure type.**
-- **Client** — referenced but **never hosted**; `Program.cs` has no `MapRazorComponents` call.
-  The reference is currently dead weight.
 
 **Referenced by:** nothing. This is the terminus.
 
@@ -350,12 +348,11 @@ rate limiting · forwarded headers · OpenAPI documents.
 | 3 | `UseExceptionHandler` | Catches everything below it |
 | 4 | `UseStatusCodePages` | Bodies for bare status results |
 | 5 | `UseHttpsRedirection` | Bounce insecure requests early |
-| 6 | `UseStaticFiles` | |
-| 7 | `UseSerilogRequestLogging` | One summary line per request |
-| 8 | `UseCors` | Before authentication, so preflight `OPTIONS` is not challenged |
-| 9 | `UseAuthentication` | Decode the JWT |
-| 10 | `UseRateLimiter` | After authentication, so `RateLimitPolicies.Default` can partition by user id; before authorization and the endpoint, so anonymous credential endpoints are still throttled |
-| 11 | `UseAuthorization` | Evaluate `[Authorize]` and policies |
+| 6 | `UseSerilogRequestLogging` | One summary line per request |
+| 7 | `UseCors` | Before authentication, so preflight `OPTIONS` is not challenged |
+| 8 | `UseAuthentication` | Decode the JWT |
+| 9 | `UseRateLimiter` | After authentication, so `RateLimitPolicies.Default` can partition by user id; before authorization and the endpoint, so anonymous credential endpoints are still throttled |
+| 10 | `UseAuthorization` | Evaluate `[Authorize]` and policies |
 
 `UseForwardedHeaders` runs earlier, in `Program.cs`, before anything reads the scheme or client IP.
 
@@ -375,7 +372,7 @@ MediatR `CachingBehavior`, keyed per query and partitioned by language — see t
 [Application blueprint](../Taxi.Application/Application_Layer_Blueprint.md).
 
 Rate limiting: two named policies, `Default` (per user or IP) and `Auth` (per IP, on the
-credential endpoints) — see §15.3.
+credential endpoints) — see §15.2.
 
 ---
 
@@ -545,37 +542,16 @@ changing it would cost.
 ## 15. Future Extensions — NOT IMPLEMENTED
 
 > ⚠️ **None of the following exists in this repository.** Corrected sketches only. In particular,
-> the previous version of this document described Blazor hosting and a SignalR hub as if they were
-> already wired — they are not.
+> the previous version of this document described a SignalR hub as if it were already wired — it
+> is not.
 
-### 15.1 Hosting the Blazor client
-
-`Taxi.Api` already references `Taxi.Client` and `Microsoft.AspNetCore.Components.WebAssembly.Server`,
-so only the wiring is missing. The client would first need an `App.razor`, a `Routes.razor` and an
-`_Imports.razor` — today it has none.
-
-```csharp
-// registration
-builder.Services.AddRazorComponents().AddInteractiveWebAssemblyComponents();
-
-// after app.MapControllers()
-app.MapRazorComponents<App>()
-   .AddInteractiveWebAssemblyRenderMode()
-   .AddAdditionalAssemblies(typeof(Taxi.Client._Imports).Assembly);
-```
-
-You would also need `app.UseWebAssemblyDebugging()` in Development and
-`app.MapFallbackToFile("index.html")` for client-side routing. Note `UseStaticFiles` is already in
-the pipeline. If the client stays a separate deployment instead, **remove the project reference** —
-right now it is dead weight.
-
-### 15.2 Correlating logs with traces
+### 15.1 Correlating logs with traces
 
 `RequestLogContextMiddleware` pushes ASP.NET's `TraceIdentifier` as `CorrelationId`. Now that
 OpenTelemetry is active, the W3C trace id is the more useful correlator — switching to
 `Activity.Current?.TraceId` would let a Seq log line and its trace be joined directly.
 
-### 15.3 Rate limiting
+### 15.2 Rate limiting
 
 Two named policies live in `Infrastructure/RateLimiting/RateLimitPolicies.cs`, with limits bound
 from the `RateLimiting` configuration section (`RateLimitingSettings`, validated on start):

@@ -23,7 +23,6 @@
   "ignores": [
     "**/node_modules/**",
     "**/bin/**",
-    "**/obj/**",
-    "src/Taxi.Client/wwwroot/**"
+    "**/obj/**"
   ]
 }

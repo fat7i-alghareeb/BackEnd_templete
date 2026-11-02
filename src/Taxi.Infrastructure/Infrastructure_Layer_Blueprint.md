@@ -537,8 +537,8 @@ request; supply a system-user constant of your own if attribution matters.
 
 ### 15.2 Real-time push (SignalR)
 
-`Microsoft.AspNetCore.SignalR.Client` is already referenced by `Taxi.Client`; the server side would
-need `Microsoft.AspNetCore.SignalR` on the API. The hub is a dumb transport; the decision to notify
+The server side needs `Microsoft.AspNetCore.SignalR` on the API (clients use
+`Microsoft.AspNetCore.SignalR.Client`). The hub is a dumb transport; the decision to notify
 belongs to Application.
 
 ```csharp

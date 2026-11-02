@@ -9,7 +9,6 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
         <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
@@ -21,7 +20,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Taxi.Client\Taxi.Client.csproj" />
         <ProjectReference Include="..\Taxi.Application\Taxi.Application.csproj" />
         <ProjectReference Include="..\Taxi.Contracts\Taxi.Contracts.csproj" />
         <ProjectReference Include="..\Taxi.Infrastructure\Taxi.Infrastructure.csproj" />

@@ -28,15 +28,14 @@ Job 2 is why `Taxi.Domain` references this project.
 
 ## 2. Dependency rules
 
-**References:** no projects. One package,
-`Microsoft.AspNetCore.Components.DataAnnotations.Validation` (for `[ValidateComplexType]` on
-nested request objects).
+**References:** nothing — no projects and no packages. `DataAnnotations` comes from the BCL.
 
-**Referenced by:** `Taxi.Domain`, `Taxi.Api`, `Taxi.Client`. (`Taxi.Application` gets it
+**Referenced by:** `Taxi.Domain`, `Taxi.Api`. (`Taxi.Application` gets it
 transitively through Domain and uses `LocalizationKeys` and `Languages` freely.)
 
-This project must stay the lightest in the solution — it is compiled into the WebAssembly client's
-download. Adding a project reference or a heavy package here is a rejection.
+This project must stay the lightest in the solution — it is the assembly a .NET client (a MAUI or
+Blazor front end, a test harness) would share with the API. Adding a project reference or a package
+here is a rejection.
 
 **Never add:** a reference to Domain, Application, Infrastructure or Api · EF Core · MediatR ·
 FluentValidation · methods on DTOs · anything `async`.
@@ -117,8 +116,8 @@ Everything that matters here:
   of the resource identity; `CarsController.UpdateCar` passes the route id into the command. There
   is no route/body mismatch to reject, so the controller stays free of `if` statements.
 
-Nested objects need `[ValidateComplexType]` on the parent property, or their annotations are not
-evaluated. That is the only reason the DataAnnotations.Validation package is referenced.
+Keep requests flat: MVC validates nested objects' annotations, but a nested shape is harder to
+evolve and to document than flat properties.
 
 ---
 
@@ -185,7 +184,7 @@ So the convention is:
 
 That is a legitimate choice (one fewer mapping hop, and the DTO is already decoupled from the
 entity), but it does mean the API's response schema is owned by the Application layer, and
-`Taxi.Client` cannot see it — the client references Contracts only.
+a .NET client that references only Contracts cannot see it.
 
 If you want responses to flow through Contracts instead, do it as a deliberate, whole-surface
 change; see §11.1. Do not do it for one endpoint, leaving the codebase with two conventions.
@@ -227,7 +226,6 @@ Contracts references nothing, so every relationship is inbound:
 | **Domain** | `LocalizationKeys` for `<Entity>Errors` codes — the reason `Taxi.Domain` references this project at all |
 | **Application** | `LocalizationKeys` in validators, `Languages` in mappers. Reaches them transitively through Domain |
 | **Infrastructure** | `LocalizationKeys` in `IdentityService`; `Languages.Default` in `AppSettings` |
-| **Client** | Its only project reference — request shapes and both registries, so browser and server cannot drift on a property name or a key |
 
 The one rule that makes this work: **Contracts never references back.** A `ToCommand()` method on
 a request would force `Contracts → Application` and create a cycle, which is why request→command
@@ -308,7 +306,7 @@ shared `CacheTags.Cars` tag is what lets one `RemoveByTagAsync` evict them all.
 
 ### 11.1 Making `Responses/` real
 
-If the response schema should belong to Contracts (so `Taxi.Client` can deserialize into shared
+If the response schema should belong to Contracts (so a .NET client can deserialize into shared
 types), the change is:
 
 1. Define `Contracts/Responses/Cars/CarResponse.cs` mirroring `CarDto`.
@@ -318,8 +316,8 @@ types), the change is:
 3. Update `[ProducesResponseType(typeof(CarResponse), ...)]`.
 4. Do it for every endpoint at once.
 
-Weigh it honestly: it buys a client-visible schema and costs a mapping layer. With the client
-currently an empty shell, returning `CarDto` directly is the reasonable status quo.
+Weigh it honestly: it buys a client-visible schema and costs a mapping layer. With no .NET client
+in the solution, returning `CarDto` directly is the reasonable status quo.
 
 ### 11.2 Contract versioning
 

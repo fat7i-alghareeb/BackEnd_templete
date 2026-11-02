@@ -41,7 +41,6 @@ Each lives beside the code it describes, so it is impossible to miss when you op
 | [Taxi.Application](../src/Taxi.Application/Application_Layer_Blueprint.md) | Commands, queries, handlers, validators, MediatR behaviours, caching |
 | [Taxi.Infrastructure](../src/Taxi.Infrastructure/Infrastructure_Layer_Blueprint.md) | `AppDbContext`, EF configuration, migrations, seeding, Identity, JWT |
 | [Taxi.Api](../src/Taxi.Api/Api_Layer_Blueprint.md) | Controllers, middleware order, error translation, OpenAPI |
-| [Taxi.Client](../src/Taxi.Client/Client_Layer_Blueprint.md) | Blazor WASM shell — currently a scaffold, not a working app |
 
 ---
 

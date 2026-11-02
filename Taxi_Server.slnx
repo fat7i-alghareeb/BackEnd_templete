@@ -19,7 +19,6 @@
   <Folder Name="/src/">
     <Project Path="src/Taxi.Api/Taxi.Api.csproj" />
     <Project Path="src/Taxi.Application/Taxi.Application.csproj" />
-    <Project Path="src/Taxi.Client/Taxi.Client.csproj" />
     <Project Path="src/Taxi.Contracts/Taxi.Contracts.csproj" />
     <Project Path="src/Taxi.Domain/Taxi.Domain.csproj" />
     <Project Path="src/Taxi.Infrastructure/Taxi.Infrastructure.csproj" />

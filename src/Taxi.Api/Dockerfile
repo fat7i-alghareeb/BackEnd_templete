@@ -19,7 +19,6 @@ WORKDIR /src
 COPY ["Directory.Packages.props", "."]
 COPY ["Directory.Build.props", "."]
 COPY ["src/Taxi.Api/Taxi.Api.csproj", "src/Taxi.Api/"]
-COPY ["src/Taxi.Client/Taxi.Client.csproj", "src/Taxi.Client/"]
 COPY ["src/Taxi.Contracts/Taxi.Contracts.csproj", "src/Taxi.Contracts/"]
 COPY ["src/Taxi.Application/Taxi.Application.csproj", "src/Taxi.Application/"]
 COPY ["src/Taxi.Domain/Taxi.Domain.csproj", "src/Taxi.Domain/"]

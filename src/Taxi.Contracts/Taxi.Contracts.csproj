@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Components.DataAnnotations.Validation" />
-    </ItemGroup>
+    <!-- Deliberately no package or project references: Contracts is the leaf every layer can see. -->
+
 </Project>

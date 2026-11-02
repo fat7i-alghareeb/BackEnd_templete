@@ -43,15 +43,15 @@ The usual rule is that the Domain points at nothing. This project breaks it on p
 alternative is worse. If you are about to "correct" the layering, read this first.
 
 `CarErrors` and `RefreshTokenErrors` use `LocalizationKeys` constants as their error codes. That
-registry must be visible to **three** places at once: the Domain (which produces the codes), the
-API (which resolves them against `SharedResource.{culture}.json`), and the Client (which may
-display them). `Taxi.Contracts` is the only project all three can reference.
+registry must be visible to the Domain (which produces the codes), the API (which resolves them
+against `SharedResource.{culture}.json`) and any .NET client that wants to display them.
+`Taxi.Contracts` is the one project all of them can reference.
 
 The alternatives and why each is worse:
 
 | Alternative | Consequence |
 |---|---|
-| Move `LocalizationKeys` into `Taxi.Domain` | Forces `Contracts → Domain`. Contracts is compiled into the WebAssembly client, so **business rules ship to the browser** as a public download. Strictly worse than the current coupling. |
+| Move `LocalizationKeys` into `Taxi.Domain` | Forces `Contracts → Domain`. Contracts is the assembly a client shares, so **business rules would ship to the client**. Strictly worse than the current coupling. |
 | Duplicate the keys in both projects | Two registries that must agree by hand. They will drift, and the failure is silent — a missing key degrades to the English fallback rather than erroring. |
 | Use raw strings for error codes | Exactly the defect that was removed from `IdentityService`: codes that resolve in no resource file, so responses fall back to English in every language. |
 

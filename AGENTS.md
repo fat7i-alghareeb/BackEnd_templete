@@ -30,7 +30,6 @@ This file covers an ordinary feature end to end. Open a blueprint when you hit o
 | touching **tracing, metrics or log sinks** | [Api §10 Observability](src/Taxi.Api/Api_Layer_Blueprint.md) |
 | touching **auth, JWT, seeding, migrations** | [Infrastructure §7, §8](src/Taxi.Infrastructure/Infrastructure_Layer_Blueprint.md) |
 | adding **pagination** to a list | [Contracts §10a Paging](src/Taxi.Contracts/Contracts_Layer_Blueprint.md) — copy `GetCarsRequest` / `GetCarsQuery`; return `PaginatedList<T>` |
-| touching the **Blazor client** | [Client blueprint](src/Taxi.Client/Client_Layer_Blueprint.md) — it is a scaffold, not a working app |
 | seeing behaviour you cannot explain | that layer's blueprint — deliberate design decisions are documented there before you assume a bug |
 
 ---
@@ -41,19 +40,19 @@ This file covers an ordinary feature end to end. Open a blueprint when you hit o
                  ┌──────────────┐
                  │ Taxi.Api     │  controllers, middleware, OpenAPI, composition root
                  └──────┬───────┘
-        ┌───────────────┼────────────────┬──────────────┐
-        ▼               ▼                ▼              ▼
-┌───────────────┐ ┌─────────────┐ ┌──────────────┐ ┌───────────┐
-│Taxi.Infra-    │ │Taxi.Applica-│ │Taxi.Contracts│ │Taxi.Client│
-│structure      │─▶│tion         │ │              │ │(WASM shell│
-│EF, Identity,  │ │CQRS, MediatR│ │requests, keys│ │ unhosted) │
-│JWT, cache     │ │behaviours   │ │              │ └─────┬─────┘
-└───────────────┘ └──────┬──────┘ └──────▲───────┘       │
-                         ▼               │               │
-                  ┌─────────────┐        │               │
-                  │ Taxi.Domain │────────┘               │
-                  │ entities,   │◀───────────────────────┘
-                  │ Result<T>   │        (Client → Contracts only)
+        ┌───────────────┼────────────────┐
+        ▼               ▼                ▼
+┌───────────────┐ ┌─────────────┐ ┌──────────────┐
+│Taxi.Infra-    │ │Taxi.Applica-│ │Taxi.Contracts│
+│structure      │─▶│tion         │ │              │
+│EF, Identity,  │ │CQRS, MediatR│ │requests, keys│
+│JWT, cache     │ │behaviours   │ │              │
+└───────────────┘ └──────┬──────┘ └──────▲───────┘
+                         ▼               │
+                  ┌─────────────┐        │
+                  │ Taxi.Domain │────────┘
+                  │ entities,   │
+                  │ Result<T>   │
                   └─────────────┘
 ```
 
@@ -65,11 +64,11 @@ Actual project references:
 | `Taxi.Domain` | `Taxi.Contracts` |
 | `Taxi.Application` | `Taxi.Domain` |
 | `Taxi.Infrastructure` | `Taxi.Application` |
-| `Taxi.Api` | `Application`, `Contracts`, `Infrastructure`, `Client` |
-| `Taxi.Client` | `Taxi.Contracts` |
+| `Taxi.Api` | `Application`, `Contracts`, `Infrastructure` |
 
 `Domain → Contracts` is real and intentional: `CarErrors` uses `LocalizationKeys` for its error
-codes, and Contracts is the only project the Domain, the API and the Client can all see.
+codes, and Contracts is the one project the Domain and the API (and any future .NET client) can
+all see.
 **Do not "fix" it** — the reasoning and every rejected alternative are in
 [Domain blueprint §2](src/Taxi.Domain/Domain_Layer_Blueprint.md).
 

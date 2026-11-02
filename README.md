@@ -68,7 +68,6 @@ flowchart LR
 | `Taxi.Application` | Commands, queries, handlers, validators, DTOs, MediatR behaviours |
 | `Taxi.Infrastructure` | EF Core + PostgreSQL, ASP.NET Identity, JWT, HybridCache |
 | `Taxi.Api` | Controllers, middleware, OpenAPI, composition root |
-| `Taxi.Client` | Blazor WebAssembly shell (scaffold only, not hosted) |
 
 ### Request pipeline
 
