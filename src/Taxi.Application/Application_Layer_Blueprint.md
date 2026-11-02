@@ -424,6 +424,7 @@ public static class CarMapper
 | `IAppDbContext` | `AppDbContext` (Infrastructure) | `DbSet<Car>`, `DbSet<RefreshToken>`, `SaveChangesAsync` |
 | `IIdentityService` | `IdentityService` | Role checks, policy checks, authenticate, fetch user, create/confirm/reset/change password, set roles — wraps `UserManager<AppUser>` so Identity types never reach a handler. Account tokens cross the boundary Base64Url-encoded; `IdentityResult` errors come back as localized, per-field `Error`s |
 | `ITokenProvider` | `TokenProvider` | Issue a JWT + refresh token, read a principal from an expired token |
+| `IFileStorage` | `LocalFileStorage` | Save / open / delete binary content by server-generated key; swap for an object store behind the same interface |
 | `IDistributedLock` | `RedisDistributedLock` / `InMemoryDistributedLock` | Atomic, expiring cross-instance lock (Redis when configured); used by idempotent POSTs and the outbox processor |
 | `ITextLocalizer` | `TextLocalizer` (**API layer**) | Resource-file text (email subjects/bodies) in the request's language |
 | `IEmailSender` | `LoggingEmailSender` / `SmtpEmailSender` | Send an `EmailMessage`; the implementation is picked by `Email:Provider` |

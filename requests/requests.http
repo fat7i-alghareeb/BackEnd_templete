@@ -179,6 +179,22 @@ Idempotency-Key: 6f1c2d4e-demo-key-0001
   "descriptionAr": "تُنشأ مرة واحدة مهما أعدت المحاولة."
 }
 
+### 2c-3. Upload the car image (multipart, field "file": JPEG/PNG/WebP, ≤ 5 MB) → 204
+PUT {{baseUrl}}/api/v1/cars/{{carId}}/image
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=CarImage
+
+--CarImage
+Content-Disposition: form-data; name="file"; filename="car.png"
+Content-Type: image/png
+
+< ./car.png
+--CarImage--
+
+### 2c-4. Download it (404 if the car has none)
+GET {{baseUrl}}/api/v1/cars/{{carId}}/image
+Authorization: Bearer {{token}}
+
 ### 2d. Get one car (cached: GetCarByIdQuery). Run twice — the second hit should not query the DB.
 GET {{baseUrl}}/api/v1/cars/{{carId}}
 Authorization: Bearer {{token}}

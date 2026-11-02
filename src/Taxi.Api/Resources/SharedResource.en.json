@@ -58,5 +58,11 @@
   "Validation.Role.Invalid": "Unknown role. Allowed roles: Manager, User.",
   "Idempotency.Key.Invalid": "The Idempotency-Key header must be 1 to 128 characters.",
   "Idempotency.Key.Reused": "This Idempotency-Key was already used with a different request body.",
-  "Idempotency.InProgress": "A request with this Idempotency-Key is still being processed. Retry shortly."
+  "Idempotency.InProgress": "A request with this Idempotency-Key is still being processed. Retry shortly.",
+  "Car.ImageKey.Required": "Car image key is required.",
+  "Car.Image.NotFound": "This car has no image.",
+  "Validation.File.Required": "A non-empty file is required.",
+  "Validation.File.TooLarge": "The file must be 5 MB or smaller.",
+  "Validation.File.TypeInvalid": "Only JPEG, PNG and WebP images are accepted.",
+  "Request.TooLarge": "The request body is too large. The limit is {0} bytes."
 }

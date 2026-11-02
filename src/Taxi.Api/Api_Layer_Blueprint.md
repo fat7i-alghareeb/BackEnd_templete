@@ -199,6 +199,21 @@ reachable unauthenticated, and the fallback policy would otherwise reject them �
 | `CanManageCars` | `Manager` |
 | `CanManageUsers` | `Manager` |
 
+### File uploads (car image)
+
+`PUT /api/v1/cars/{id}/image` binds `IFormFile file` (multipart). It is the one action that binds a
+framework type instead of a Contracts request — Contracts cannot reference ASP.NET — and it still
+only opens the stream, sends `UploadCarImageCommand`, and matches.
+
+- `[RequestSizeLimit]` / `[RequestFormLimits]` raise the 1 MB global body cap to 5 MB (+ multipart
+  overhead) for this action only. An oversized upload is a localized **413**: the form reader
+  reports it as a model error, so `InvalidModelStateResponseFactory` checks `Content-Length` against
+  the endpoint's limit before building a 400.
+- The handler identifies the format from the **leading bytes** (`Common/Files/ImageFormat`:
+  JPEG/PNG/WebP), never from the client's `Content-Type` or file name.
+- `GET …/image` streams the file with the detected content type (`nosniff` is already set);
+  `DELETE …/image` removes it. `CarDto.HasImage` tells clients whether to ask.
+
 ### Idempotent POSTs
 
 `[Idempotent]` (`Infrastructure/Idempotency/`) on an action makes it safe to retry. It is on

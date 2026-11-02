@@ -10,6 +10,8 @@ public static class LocalizationKeys
         public const string DescriptionRequired = "Car.Description.Required";
         public const string InvalidYear = "Car.Year.Invalid";
         public const string NotFound = "Car.NotFound";
+        public const string ImageKeyRequired = "Car.ImageKey.Required";
+        public const string ImageNotFound = "Car.Image.NotFound";
     }
 
     public static class RefreshToken
@@ -57,6 +59,12 @@ public static class LocalizationKeys
         public const string InProgress = "Idempotency.InProgress";
     }
 
+    public static class Request
+    {
+        /// <summary>Formatted with the limit in bytes.</summary>
+        public const string TooLarge = "Request.TooLarge";
+    }
+
     public static class RateLimit
     {
         public const string Exceeded = "RateLimit.Exceeded";
@@ -87,6 +95,9 @@ public static class LocalizationKeys
         public const string PasswordRequiresNonAlphanumeric = "Validation.Password.RequiresNonAlphanumeric";
         public const string PasswordRequiresUniqueChars = "Validation.Password.RequiresUniqueChars";
         public const string TokenRequired = "Validation.Token.Required";
+        public const string FileRequired = "Validation.File.Required";
+        public const string FileTooLarge = "Validation.File.TooLarge";
+        public const string FileTypeInvalid = "Validation.File.TypeInvalid";
         public const string UserIdRequired = "Validation.UserId.Required";
         public const string RolesRequired = "Validation.Roles.Required";
         public const string RoleInvalid = "Validation.Role.Invalid";

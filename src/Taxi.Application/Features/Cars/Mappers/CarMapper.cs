@@ -13,7 +13,8 @@ public static class CarMapper
             car.Make,
             car.Model,
             car.Year,
-            language == Languages.Ar ? car.Description.Ar : car.Description.En);
+            language == Languages.Ar ? car.Description.Ar : car.Description.En,
+            car.ImageKey is not null);
     }
 
     public static List<CarDto> ToDto(this IEnumerable<Car> cars, string language = Languages.Default)

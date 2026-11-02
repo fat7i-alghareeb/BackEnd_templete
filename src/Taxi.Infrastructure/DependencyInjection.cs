@@ -19,6 +19,7 @@ using Taxi.Application.Common.Settings;
 using Taxi.Infrastructure.Data;
 using Taxi.Infrastructure.Data.Interceptors;
 using Taxi.Infrastructure.Email;
+using Taxi.Infrastructure.Files;
 using Taxi.Infrastructure.HealthChecks;
 using Taxi.Infrastructure.Identity;
 using Taxi.Infrastructure.Locking;
@@ -137,6 +138,12 @@ public static class DependencyInjection
         services.AddAppEmail(configuration);
 
         services.AddOutbox(configuration);
+
+        services.AddOptions<FileStorageSettings>()
+            .Bind(configuration.GetSection(FileStorageSettings.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
 
         return services;
     }

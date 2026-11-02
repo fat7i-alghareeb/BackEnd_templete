@@ -27,6 +27,9 @@ public sealed class Car : AuditableEntity, ISoftDeletable
 
     public LocalizedText Description { get; private set; } = null!;
 
+    /// <summary>Gets the storage key of the car's image (<c>IFileStorage</c>), or null when it has none.</summary>
+    public string? ImageKey { get; private set; }
+
     public bool IsDeleted { get; set; }
 
     public DateTimeOffset? DeletedAtUtc { get; set; }
@@ -93,6 +96,30 @@ public sealed class Car : AuditableEntity, ISoftDeletable
         this.Model = model;
         this.Year = year;
         this.Description = new LocalizedText(descriptionEn.Trim(), descriptionAr.Trim());
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> SetImage(string imageKey)
+    {
+        if (string.IsNullOrWhiteSpace(imageKey))
+        {
+            return CarErrors.ImageKeyRequired;
+        }
+
+        this.ImageKey = imageKey;
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> RemoveImage()
+    {
+        if (this.ImageKey is null)
+        {
+            return CarErrors.ImageNotFound;
+        }
+
+        this.ImageKey = null;
 
         return Result.Updated;
     }

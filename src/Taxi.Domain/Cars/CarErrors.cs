@@ -25,6 +25,14 @@ public static class CarErrors
         code: LocalizationKeys.Car.InvalidYear,
         description: "Car year is invalid.");
 
+    public static readonly Error ImageKeyRequired = Error.Validation(
+        code: LocalizationKeys.Car.ImageKeyRequired,
+        description: "Car image key is required.");
+
+    public static readonly Error ImageNotFound = Error.NotFound(
+        code: LocalizationKeys.Car.ImageNotFound,
+        description: "This car has no image.");
+
     public static readonly Error NotFound = Error.NotFound(
         code: LocalizationKeys.Car.NotFound,
         description: "Car was not found.");

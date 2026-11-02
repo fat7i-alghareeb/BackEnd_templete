@@ -5,11 +5,10 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
-# Make wwwroot writable for the non-root app user. Individual runtime-created
-# folders are created as needed by the app — no folder needs baking in here.
-# In production a named volume overlays wwwroot and its ownership is fixed by
-# the taxi.api-init compose service.
-RUN mkdir -p /app/wwwroot && chmod -R 777 /app/wwwroot
+# Uploaded files (FileStorage:LocalRootPath) live in /app/storage, owned by the
+# non-root app user. In production a named volume overlays it and its ownership
+# is fixed by the taxi.api-init compose service.
+RUN mkdir -p /app/storage && chown $APP_UID /app/storage
 USER $APP_UID
 
 
@@ -39,13 +38,4 @@ RUN dotnet publish "./Taxi.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-# The publish copy overlays a root-owned wwwroot (read-only for $APP_UID), so the
-# app can't create runtime upload sub-dirs there. Restore write access after the
-# copy, then drop back to the non-root app user.
-# NOTE: in production /app/wwwroot is a persisted named volume that overlays this
-# layer and keeps its OWN ownership, so this build-time chmod does not reach it —
-# runtime write access there is guaranteed by the `taxi.api-init` compose service.
-USER root
-RUN mkdir -p /app/wwwroot && chmod -R 777 /app/wwwroot
-USER $APP_UID
 ENTRYPOINT ["dotnet", "Taxi.Api.dll"]

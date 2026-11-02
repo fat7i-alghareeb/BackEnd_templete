@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -36,8 +37,9 @@ public class GlobalExceptionHandler(
                 ProblemDetails = new ProblemDetails
                 {
                     Status = badRequest.StatusCode,
-                    Title = ReasonPhrases.GetReasonPhrase(badRequest.StatusCode),
-                    Detail = badRequest.Message,
+                    Title = badRequest.StatusCode == StatusCodes.Status413PayloadTooLarge
+                        ? this.localizer[LocalizationKeys.Request.TooLarge, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>()?.MaxRequestBodySize ?? 0].Value
+                        : ReasonPhrases.GetReasonPhrase(badRequest.StatusCode),
                 },
             });
         }

@@ -58,5 +58,11 @@
   "Validation.Role.Invalid": "دور غير معروف. الأدوار المسموح بها: Manager و User.",
   "Idempotency.Key.Invalid": "يجب أن يكون طول ترويسة Idempotency-Key بين 1 و 128 حرفًا.",
   "Idempotency.Key.Reused": "تم استخدام مفتاح Idempotency-Key هذا مسبقًا مع طلب مختلف.",
-  "Idempotency.InProgress": "لا يزال طلب بهذا المفتاح Idempotency-Key قيد المعالجة. أعد المحاولة بعد قليل."
+  "Idempotency.InProgress": "لا يزال طلب بهذا المفتاح Idempotency-Key قيد المعالجة. أعد المحاولة بعد قليل.",
+  "Car.ImageKey.Required": "مفتاح صورة السيارة مطلوب.",
+  "Car.Image.NotFound": "لا توجد صورة لهذه السيارة.",
+  "Validation.File.Required": "الملف مطلوب ويجب ألا يكون فارغًا.",
+  "Validation.File.TooLarge": "يجب ألا يتجاوز حجم الملف 5 ميغابايت.",
+  "Validation.File.TypeInvalid": "يُقبل فقط صور JPEG و PNG و WebP.",
+  "Request.TooLarge": "حجم الطلب كبير جدًا. الحد الأقصى هو {0} بايت."
 }

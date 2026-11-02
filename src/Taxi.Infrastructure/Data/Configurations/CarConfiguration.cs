@@ -36,6 +36,9 @@ public class CarConfiguration : IEntityTypeConfiguration<Car>
         builder.Property(c => c.DeletedBy)
                .HasMaxLength(450);
 
+        builder.Property(c => c.ImageKey)
+               .HasMaxLength(200);
+
         builder.UseXminConcurrencyToken();
     }
 }

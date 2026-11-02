@@ -142,6 +142,7 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 | `Kestrel:Limits:MaxRequestBodySize` | `1048576` | request body cap in bytes; larger bodies get 413 |
 | `Email:Provider` | `Log` | `Log` writes emails to the log; `Smtp` sends via `Email:Smtp:*` (compose dev uses Mailpit at `:8025`) |
 | `ClientApp:ConfirmEmailUrl` / `ResetPasswordUrl` | `http://localhost:5002/account/…` | front-end pages the account emails link to (`?userId=&token=` / `?email=&token=`) |
+| `FileStorage:LocalRootPath` | `storage` | where uploads are written (relative to the content root; `/app/storage` volume in prod compose) |
 | `ConnectionStrings:Redis` | *(blank)* | HybridCache L2; blank = in-process cache only (single instance) |
 | `JwtSettings:Secret` | *(blank)* | HMAC key; the host refuses to start unless it is at least 32 characters |
 | `JwtSettings:TokenExpirationInMinutes` | `60` | access token lifetime (1–1440) |
@@ -175,6 +176,9 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 | ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/v1/cars` | 🔒 Manager | Create a car; send `Idempotency-Key` to make retries safe |
 | ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/cars/{id}` | 🔒 Manager | Update a car |
 | ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/cars/{id}` | 🔒 Manager | Soft-delete a car |
+| ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/cars/{id}/image` | 🔒 Manager | Upload/replace the image (multipart `file`, JPEG/PNG/WebP, ≤ 5 MB) |
+| ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars/{id}/image` | 🔒 | Download the image |
+| ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/cars/{id}/image` | 🔒 Manager | Remove the image |
 
 Errors always come back as `ProblemDetails`, translated by `Accept-Language`:
 

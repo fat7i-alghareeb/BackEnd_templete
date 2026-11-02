@@ -401,7 +401,13 @@ In order:
     `dotnet run` leaves it blank and caches in-process. With Redis, a single `IConnectionMultiplexer`
     (`AbortOnConnectFail = false`, so the API starts while Redis is still coming up) is shared by
     the cache and `RedisDistributedLock`; without it `IDistributedLock` is `InMemoryDistributedLock`.
-11. `AddAppEmail` — binds `EmailSettings` (section `Email`, validated on start) and registers
+11. `IFileStorage` → `LocalFileStorage` (singleton), rooted at `FileStorage:LocalRootPath`
+    (`storage`, relative to the content root — **outside `wwwroot`**, so uploads are never served
+    as anonymous static files). Keys are `folder/<guid>.<ext>`, generated server-side; every key is
+    matched against that shape and resolved inside the root before use, so no traversal is
+    possible. Disk is per machine: with several instances, mount shared storage there or add an
+    object-store implementation.
+12. `AddAppEmail` — binds `EmailSettings` (section `Email`, validated on start) and registers
     `IEmailSender`: `LoggingEmailSender` when `Email:Provider` is `Log` (the default — the message,
     including any one-time link, is written to the log), `SmtpEmailSender` (MailKit) when it is
     `Smtp`, which then requires `Email:Smtp:Host`. Development compose points it at the Mailpit

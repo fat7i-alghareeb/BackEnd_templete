@@ -7,8 +7,10 @@ using System.Threading.RateLimiting;
 using Asp.Versioning;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -304,6 +306,21 @@ public static class DependencyInjection
                 var localizer = sp.GetRequiredService<IStringLocalizer<SharedResource>>();
                 var logger = sp.GetRequiredService<ILogger<SharedResource>>();
                 var env = sp.GetRequiredService<IHostEnvironment>();
+
+                // A multipart body over the endpoint's limit ([RequestSizeLimit]) surfaces here as an
+                // English "Failed to read the request form" model error rather than as an exception.
+                // A declared Content-Length above the limit identifies it: answer 413, not 400.
+                var request = context.HttpContext.Request;
+                var maxBodySize = context.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>()?.MaxRequestBodySize;
+                if (request.ContentLength > maxBodySize)
+                {
+                    var tooLarge = sp.GetRequiredService<ProblemDetailsFactory>().CreateProblemDetails(
+                        context.HttpContext,
+                        StatusCodes.Status413PayloadTooLarge,
+                        localizer[LocalizationKeys.Request.TooLarge, maxBodySize].Value);
+
+                    return new ObjectResult(tooLarge) { StatusCode = StatusCodes.Status413PayloadTooLarge };
+                }
 
                 // Only entries that failed: ModelState also holds every valid bound value (e.g. a
                 // route id), which would otherwise appear in the response as "userId": [].
