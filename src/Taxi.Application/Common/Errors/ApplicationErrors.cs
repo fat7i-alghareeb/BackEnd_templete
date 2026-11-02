@@ -29,6 +29,10 @@ public static class ApplicationErrors
         code: LocalizationKeys.Auth.UserNotFound,
         description: "User not found.");
 
+    public static Error InvalidCredentials => Error.Unauthorized(
+        code: LocalizationKeys.Auth.InvalidLoginAttempt,
+        description: "Email or password is incorrect.");
+
     public static Error TokenGenerationFailed => Error.Failure(
         code: LocalizationKeys.Auth.TokenGenerationFailed,
         description: "Failed to generate new JWT token.");

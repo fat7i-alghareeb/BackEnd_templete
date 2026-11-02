@@ -44,27 +44,35 @@ public class IdentityService(
 
     public async Task<Result<AppUserDto>> AuthenticateAsync(string email, string password)
     {
+        // Unknown email, wrong password and locked-out account all produce the same error, so the
+        // endpoint cannot be used to discover which addresses have accounts.
         var user = await this.userManager.FindByEmailAsync(email);
 
         if (user is null)
         {
-            return Error.NotFound(
-                LocalizationKeys.Auth.UserNotFound,
-                $"User with email {UtilityService.MaskEmail(email)} not found");
+            return ApplicationErrors.InvalidCredentials;
         }
 
+        if (await this.userManager.IsLockedOutAsync(user))
+        {
+            return ApplicationErrors.InvalidCredentials;
+        }
+
+        if (!await this.userManager.CheckPasswordAsync(user, password))
+        {
+            // Counts towards Identity lockout (Lockout options in AddInfrastructure).
+            await this.userManager.AccessFailedAsync(user);
+            return ApplicationErrors.InvalidCredentials;
+        }
+
+        await this.userManager.ResetAccessFailedCountAsync(user);
+
+        // Only revealed to someone who already proved they know the password.
         if (!user.EmailConfirmed)
         {
             return Error.Conflict(
                 LocalizationKeys.Auth.EmailNotConfirmed,
                 $"Email '{UtilityService.MaskEmail(email)}' is not confirmed");
-        }
-
-        if (!await this.userManager.CheckPasswordAsync(user, password))
-        {
-            return Error.Conflict(
-                LocalizationKeys.Auth.InvalidLoginAttempt,
-                "Email / Password are incorrect");
         }
 
         return new AppUserDto(user.Id, user.Email!, await this.userManager.GetRolesAsync(user), await this.userManager.GetClaimsAsync(user));

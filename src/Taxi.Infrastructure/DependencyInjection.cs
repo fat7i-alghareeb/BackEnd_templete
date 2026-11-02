@@ -104,6 +104,14 @@ public static class DependencyInjection
             options.Password.RequireLowercase = false;
             options.Password.RequiredUniqueChars = 1;
             options.SignIn.RequireConfirmedAccount = false;
+
+            // Brute-force guard alongside RateLimitPolicies.Auth: 5 wrong passwords lock the
+            // account for 15 minutes. A locked account answers like a wrong password.
+            options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+
+            options.User.RequireUniqueEmail = true;
         })
         .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<AppDbContext>()

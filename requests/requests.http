@@ -22,7 +22,8 @@ Accept-Language: {{lang}}
 @token = {{generateToken.response.body.accessToken}}
 @refreshToken = {{generateToken.response.body.refreshToken}}
 
-### 1a. Bad password → 409, message localized by Accept-Language
+### 1a. Bad password → 401, message localized by Accept-Language.
+### Unknown email and locked-out account (5 failures → 15 min) answer exactly the same.
 POST {{baseUrl}}/api/token/generate
 Content-Type: application/json
 Accept-Language: ar

@@ -300,6 +300,13 @@ Failure codes are `LocalizationKeys.Auth.*` constants — `UserNotFound`, `Email
 `UtilityService.MaskEmail`. **Any new failure here needs a `LocalizationKeys` constant and entries
 in both resource files.**
 
+`AuthenticateAsync` is deliberately uniform: an unknown email, a wrong password and a locked-out
+account all return `ApplicationErrors.InvalidCredentials` (**401**), so the login endpoint cannot be
+used to enumerate accounts. A wrong password calls `AccessFailedAsync`; Identity lockout (5
+failures → 15 minutes, set in `AddIdentityCore`) backs up the per-IP rate limiter against
+distributed guessing. `EmailNotConfirmed` (409) is only returned after the password has been
+verified.
+
 ### `TokenProvider : ITokenProvider`
 
 - `GenerateJwtTokenAsync` — HMAC-SHA256 access token from the `JwtSettings` section
