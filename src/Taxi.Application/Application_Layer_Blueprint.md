@@ -411,7 +411,7 @@ public static class CarMapper
 - Overload for the collection case rather than making callers write `.Select(...)`.
 - **Mapping happens in memory, after materialisation.** The handler loads the entity, then calls
   `ToDto(language)`. There is no SQL-side JSONB projection in this codebase, and no
-  `[Projection]` logging convention. If you need one later, see §12.3.
+  `[Projection]` logging convention. If you need one later, see §15.2.
 - Domain entities never leave this layer. `Result<Car>` is a compile error waiting to happen —
   return `Result<CarDto>`.
 
@@ -450,6 +450,24 @@ aggregates.
 **Does not belong:** invariant enforcement (Domain) · `HttpContext` / `IActionResult` /
 status codes (API) · SQL, provider packages, migrations (Infrastructure) · returning entities ·
 `DependencyInjection` registrations for Infrastructure services.
+
+---
+
+## 11a. Domain event handlers
+
+A domain event (Domain blueprint §10a) is handled by an `INotificationHandler<TEvent>` in
+`Features/<Plural>/EventHandlers/<Event>Handler.cs` — MediatR's assembly scan registers it. The
+reference is `Features/Cars/EventHandlers/CarCreatedDomainEventHandler.cs`.
+
+Handlers are invoked by Infrastructure's `OutboxProcessor`, **not** by the request:
+
+- after the transaction committed, a few seconds later, in their own DI scope with no
+  `HttpContext` (`IUser.Id` is null, `ILanguageContext` falls back to the default);
+- **at least once** — make them idempotent;
+- a handler that throws is retried with backoff and never fails the request that raised the event.
+
+Use them for side effects (email, cache eviction for derived data, integrations). Anything the
+caller must see in the response belongs in the command handler instead.
 
 ---
 
@@ -512,7 +530,7 @@ Application layer states the need; whichever host is running supplies it.
 
 > ⚠️ **None of the following exists in this repository.** Corrected sketches only.
 
-### 12.1 Authorization behaviour
+### 15.1 Authorization behaviour
 
 Today authorization is named policies (`Common/Security/Policies.cs`) applied with
 `[Authorize(Policy = ...)]` on controllers. If a rule ever needs to live with the use
@@ -593,37 +611,7 @@ You would also need to add `Unauthorized` and `Forbidden` to `ApplicationErrors`
 `LocalizationKeys`, and register the behaviour **before** `ValidationBehavior` (fail auth before
 spending effort on validation).
 
-### 12.2 Domain event handlers
-
-The dispatch side already works (`AppDbContext.SaveChangesAsync` publishes through `IMediator`).
-Once a concrete `DomainEvent` exists (see the Domain blueprint), the handler goes here:
-
-```csharp
-// src/Taxi.Application/Features/Cars/EventHandlers/CarRetiredEventHandler.cs
-public class CarRetiredEventHandler(
-    HybridCache cache,
-    ILogger<CarRetiredEventHandler> logger)
-    : INotificationHandler<CarRetiredEvent>
-{
-    private readonly HybridCache cache = cache;
-    private readonly ILogger<CarRetiredEventHandler> logger = logger;
-
-    public async Task Handle(CarRetiredEvent notification, CancellationToken ct)
-    {
-        this.logger.LogInformation("Car {CarId} retired.", notification.CarId);
-        await this.cache.RemoveByTagAsync(CacheTags.Cars, ct);
-    }
-}
-```
-
-MediatR's assembly scan registers it. Convention: `Features/<Plural>/EventHandlers/<Event>Handler.cs`.
-
-Know the semantics before relying on it: dispatch happens **before** the commit, so a throwing
-handler aborts the save and a handler cannot assume the data is durable. For side effects that
-must only run after a successful commit (emails, webhooks), either move dispatch to
-`SavedChangesAsync` in an interceptor or queue an outbox row.
-
-### 12.3 SQL-side bilingual projection
+### 15.2 SQL-side bilingual projection
 
 Current mapping materialises the entity then picks a language in memory. For a large list endpoint
 that becomes wasteful — both JSONB values cross the wire. EF Core can push the choice into SQL:
@@ -647,7 +635,7 @@ before adopting it (Serilog logs EF commands at Information level) — if it eva
 you have gained nothing. If you switch, do it for every list endpoint at once so there is one
 convention, and keep `CarMapper` for the single-entity case where the difference is irrelevant.
 
-### 12.4 Transactions across several `SaveChanges`
+### 15.3 Transactions across several `SaveChanges`
 
 Every handler today performs exactly one `SaveChangesAsync`, which EF Core already wraps in a
 transaction. If a use case ever needs two saves atomically, do **not** add a transaction behaviour

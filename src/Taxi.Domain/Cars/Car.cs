@@ -1,5 +1,6 @@
 namespace Taxi.Domain.Cars;
 
+using Taxi.Domain.Cars.Events;
 using Taxi.Domain.Common;
 using Taxi.Domain.Common.Results;
 
@@ -59,7 +60,11 @@ public sealed class Car : AuditableEntity, ISoftDeletable
             return CarErrors.DescriptionRequired;
         }
 
-        return new Car(id, make, model, year, new LocalizedText(descriptionEn.Trim(), descriptionAr.Trim()));
+        var car = new Car(id, make, model, year, new LocalizedText(descriptionEn.Trim(), descriptionAr.Trim()));
+
+        car.AddDomainEvent(new CarCreatedDomainEvent(car.Id, car.Make, car.Model, car.Year));
+
+        return car;
     }
 
     public Result<Updated> Update(string make, string model, int year, string descriptionEn, string descriptionAr)

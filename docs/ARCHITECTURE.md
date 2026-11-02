@@ -248,9 +248,11 @@ query and partitioned by language.
 `AppDbContext : IdentityDbContext<AppUser>, IAppDbContext` — Identity tables and business tables
 share one context and one transaction.
 
-- `SaveChangesAsync` is overridden to **dispatch domain events via `IMediator.Publish` before**
-  calling `base.SaveChangesAsync`. The mechanism is complete; no concrete `DomainEvent` subclass
-  exists yet.
+- Domain events go through a **transactional outbox**: `OutboxInterceptor` stores them as
+  `OutboxMessages` rows in the same transaction as the change, and `OutboxBackgroundService`
+  publishes them through MediatR afterwards (one instance at a time via `IDistributedLock`,
+  exponential-backoff retries, parked after 5 attempts). Handlers are at-least-once. The reference
+  event is `CarCreatedDomainEvent`.
 - `Car` uses PostgreSQL's `xmin` as an optimistic concurrency token (shadow property, no extra
   column); a lost race surfaces as `DbUpdateConcurrencyException` → localized 409.
 - `SoftDeleteInterceptor` turns a delete of any `ISoftDeletable` (today `Car`) into an update of

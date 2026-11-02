@@ -24,7 +24,7 @@ This file covers an ordinary feature end to end. Open a blueprint when you hit o
 | adding a plain entity with CRUD endpoints | nothing — this file is enough |
 | adding a **localized child collection** | [Infrastructure §5 Entity configuration](src/Taxi.Infrastructure/Infrastructure_Layer_Blueprint.md) — `OwnsMany` + `ToJson` is unsupported |
 | adding or reordering a **pipeline behaviour** | [Application §7 Pipeline behaviours](src/Taxi.Application/Application_Layer_Blueprint.md) |
-| adding a **domain event** | [Domain §11](src/Taxi.Domain/Domain_Layer_Blueprint.md) + [Application §15](src/Taxi.Application/Application_Layer_Blueprint.md) |
+| adding a **domain event** | [Domain §10a](src/Taxi.Domain/Domain_Layer_Blueprint.md) + [Application §11a](src/Taxi.Application/Application_Layer_Blueprint.md) + the outbox in [Infrastructure §4](src/Taxi.Infrastructure/Infrastructure_Layer_Blueprint.md) — handlers run in the background, at least once |
 | declaring a **new Application interface** | [Application §13 Talking to other layers](src/Taxi.Application/Application_Layer_Blueprint.md) — decides Infrastructure vs Api for the implementation |
 | touching **middleware order** or OpenAPI | [Api §6, §8](src/Taxi.Api/Api_Layer_Blueprint.md) |
 | touching **tracing, metrics or log sinks** | [Api §10 Observability](src/Taxi.Api/Api_Layer_Blueprint.md) |
@@ -416,7 +416,7 @@ HTTP request
       → CachingBehavior               ICachedQuery only; returns cached value on hit
       → Handler                       domain call + IAppDbContext + SaveChangesAsync
           → AppDbContext.SaveChangesAsync
-              → dispatch domain events via IMediator.Publish
+              → OutboxInterceptor writes domain events as OutboxMessages (same transaction)
               → SoftDeleteInterceptor turns deletes of ISoftDeletable into IsDeleted updates
               → AuditableEntityInterceptor stamps Created*/LastModified*
               → PostgreSQL

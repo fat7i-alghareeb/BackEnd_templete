@@ -22,6 +22,7 @@ using Taxi.Infrastructure.Email;
 using Taxi.Infrastructure.HealthChecks;
 using Taxi.Infrastructure.Identity;
 using Taxi.Infrastructure.Locking;
+using Taxi.Infrastructure.Outbox;
 using Taxi.Infrastructure.Settings;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -51,7 +52,7 @@ public static class DependencyInjection
         // then stamps LastModified* on the same entry.
         services.AddScoped<ISaveChangesInterceptor, SoftDeleteInterceptor>();
         services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
-        services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
+        services.AddScoped<ISaveChangesInterceptor, OutboxInterceptor>();
 
         services.AddDbContext<AppDbContext>((sp, options) =>
         {
@@ -134,6 +135,8 @@ public static class DependencyInjection
         services.AddAppHealthChecks(configuration);
 
         services.AddAppEmail(configuration);
+
+        services.AddOutbox(configuration);
 
         return services;
     }
@@ -235,6 +238,30 @@ public static class DependencyInjection
         else
         {
             services.AddTransient<IEmailSender, LoggingEmailSender>();
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Domain events go through a transactional outbox: <see cref="OutboxInterceptor"/> (registered
+    /// with the other interceptors above) writes them in the same transaction, and
+    /// <see cref="OutboxBackgroundService"/> publishes them. Set <c>Outbox:Enabled=false</c> on an
+    /// instance that should not run the processor.
+    /// </summary>
+    /// <returns>The service collection, for chaining.</returns>
+    public static IServiceCollection AddOutbox(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<OutboxSettings>()
+            .Bind(configuration.GetSection(OutboxSettings.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddSingleton<OutboxProcessor>();
+
+        if (configuration.GetValue($"{OutboxSettings.SectionName}:Enabled", defaultValue: true))
+        {
+            services.AddHostedService<OutboxBackgroundService>();
         }
 
         return services;

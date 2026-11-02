@@ -384,53 +384,36 @@ The Domain never calls out. Everything is inbound:
 
 ---
 
+## 10a. Domain events
+
+`DomainEvent` is an `abstract record : INotification` (the one sanctioned MediatR touchpoint). The
+reference event is `Cars/Events/CarCreatedDomainEvent`, raised by `Car.Create`:
+
+```csharp
+public sealed record CarCreatedDomainEvent(Guid CarId, string Make, string Model, int Year) : DomainEvent;
+
+// inside the factory or a behaviour method — never from a handler
+car.AddDomainEvent(new CarCreatedDomainEvent(car.Id, car.Make, car.Model, car.Year));
+```
+
+Rules:
+
+- A **record** of serializable values (ids, strings, numbers, dates). It is stored as JSON in the
+  outbox and rehydrated later, maybe on another instance — never put an entity or a service in it.
+- Name it `<Entity><PastTenseVerb>DomainEvent`, one file per event under `<Plural>/Events/`.
+- Raise it only after the guards pass, so a rejected operation raises nothing.
+- Handlers live in Application (`Features/<Plural>/EventHandlers/`) and run **after the commit,
+  in the background, at least once** — see the Infrastructure blueprint's outbox section.
+
+---
+
 ## 11. Future Extensions — NOT IMPLEMENTED
 
 > ⚠️ **None of the following exists in this repository.** These are corrected sketches for how to
 > add each capability *in this stack* if it is ever needed. Do not treat them as existing pattern,
 > and do not add them speculatively.
 
-### 11.1 A concrete domain event
-
-The infrastructure is already in place — `DomainEvent`, `Entity.AddDomainEvent`, and dispatch in
-`AppDbContext.SaveChangesAsync`. To use it:
-
-```csharp
-// src/Taxi.Domain/Cars/Events/CarRetiredEvent.cs
-namespace Taxi.Domain.Cars.Events;
-
-using Taxi.Domain.Common;
-
-public sealed class CarRetiredEvent(Guid carId) : DomainEvent
-{
-    public Guid CarId { get; } = carId;
-}
-```
-
-```csharp
-// raised from inside the entity, never from the handler
-public Result<Updated> Retire()
-{
-    if (this.IsRetired)
-    {
-        return CarErrors.AlreadyRetired;
-    }
-
-    this.IsRetired = true;
-    this.AddDomainEvent(new CarRetiredEvent(this.Id));
-    return Result.Updated;
-}
-```
-
-The handler side goes in Application as an `INotificationHandler<CarRetiredEvent>` — see the
-Application blueprint's future-extensions section.
-
-**Caveat worth knowing before you rely on it:** the current dispatch happens *before*
-`base.SaveChangesAsync`, so a handler observes the change before it is committed, and a handler
-throwing will abort the save. If you need after-commit semantics, move dispatch into an
-`ISaveChangesInterceptor.SavedChangesAsync` implementation instead.
-
-### 11.2 A real value object base
+### 11.1 A real value object base
 
 If structural equality is ever needed (money, coordinates, an address), add the base type rather
 than overriding equality per class:
@@ -471,7 +454,7 @@ unaffected by equality overrides), but do it as its own change so the migration 
 Value objects that can be invalid get the same `private ctor` + `static Result<T> Create` shape as
 entities.
 
-### 11.3 A domain service
+### 11.2 A domain service
 
 Only when a rule spans two aggregates and belongs to neither. Stateless, no I/O, no interfaces
 injected, returns `Result<T>`:

@@ -56,12 +56,12 @@ src/Taxi.Infrastructure/
 │   ├── Interceptors/
 │   │   ├── AuditableEntityExtensions.cs
 │   │   ├── AuditableEntityInterceptor.cs
-│   │   ├── DispatchDomainEventsInterceptor.cs
 │   │   └── SoftDeleteInterceptor.cs
 │   └── Migrations/
 │       ├── 20260502062106_Initial_Cars.cs
 │       ├── 20260502070738_AddLocalizedDescriptionToCar.cs
 │       └── AppDbContextModelSnapshot.cs
+├── Outbox/                         OutboxMessage, OutboxInterceptor, OutboxProcessor, OutboxBackgroundService
 ├── Identity/
 │   ├── AppUser.cs
 │   ├── IdentityService.cs
@@ -114,24 +114,36 @@ auditing, domain events — lives in interceptors, so the context never grows a 
 - `ApplyConfigurationsFromAssembly` picks up every `IEntityTypeConfiguration<T>` automatically —
   never register one by hand.
 
-### Domain event dispatch
+### Domain events: the transactional outbox
 
-`DispatchDomainEventsInterceptor` publishes domain events **after the transaction commits**.
+Domain events never run inside the request. The flow:
 
-The split is forced by EF Core's lifecycle: events must be *collected* in `SavingChanges`, because
-the ChangeTracker is reset afterwards, but *published* in `SavedChanges`, once the data is durable.
-The interceptor is scoped, so it holds the pending events on itself between the two callbacks and
-clears each entity's list at collection time — a second `SaveChanges` in the same scope cannot
-re-publish them.
+1. An entity method raises an event (`Car.Create` → `CarCreatedDomainEvent`).
+2. `OutboxInterceptor` (in `SavingChanges`) serializes every pending event into an
+   `OutboxMessage` row (`Type` = CLR name, `Content` = JSON) and adds it to the **same**
+   `SaveChanges` — one transaction, so the change and its events commit together or not at all —
+   then clears the entity's list so a second save cannot store them twice.
+3. `OutboxBackgroundService` calls `OutboxProcessor.ProcessAsync` every
+   `Outbox:PollingIntervalSeconds` (5). The processor takes the `IDistributedLock`
+   `outbox-processor`, so one instance processes at a time, loads up to `BatchSize` (20) pending
+   rows in arrival order, and publishes each through MediatR in a fresh DI scope.
+4. Success sets `ProcessedOnUtc`. A failure increments `Attempts`, stores the exception in `Error`
+   and schedules `NextAttemptOnUtc` with exponential backoff (2, 4, 8 … s, capped at 5 min). After
+   `MaxAttempts` (5) the row is **parked** — kept, never retried — for someone to inspect.
+5. Processed rows older than `RetentionDays` (7) are deleted.
 
-**Why after the commit:** an event asserts that something *has happened*. Publishing before the
-write is durable means a handler can act on a change that then fails to persist.
+Properties to design for:
 
-**The trade-off:** a handler that throws no longer rolls the transaction back, so the side effect
-is lost while the write survives. If a side effect must never be lost, write an outbox row inside
-the same transaction and process it separately — see Future Extensions.
+- **At-least-once.** If the process dies after a handler ran but before the row was marked, the
+  handler runs again. Handlers must be idempotent.
+- **Eventually.** Handlers run seconds after the request, with no `HttpContext` (`IUser.Id` is
+  null) and in a scope of their own.
+- **Allow-listed types.** A row is only deserialized into a concrete `DomainEvent` subtype from the
+  Domain assembly — a tampered `Type` column cannot instantiate anything else.
+- **`Outbox:Enabled=false`** stops an instance from running the processor (events are still written).
 
-No concrete `DomainEvent` exists yet, so nothing exercises this today.
+`OutboxMessage` is an Infrastructure persistence type, not a domain entity: it is not on
+`IAppDbContext`, and its table has a partial index on `OccurredOnUtc WHERE "ProcessedOnUtc" IS NULL`.
 
 ---
 
@@ -201,7 +213,7 @@ Adding a third means registering it there and nothing else.
 |---|---|---|
 | `SoftDeleteInterceptor` | `SavingChanges` | Turns a delete of an `ISoftDeletable` into an update stamping `IsDeleted`, `DeletedAtUtc`, `DeletedBy` |
 | `AuditableEntityInterceptor` | `SavingChanges` | Stamps audit columns |
-| `DispatchDomainEventsInterceptor` | `SavingChanges` + `SavedChanges` | Collects events before the write, publishes after the commit (§4) |
+| `OutboxInterceptor` | `SavingChanges` | Turns pending domain events into `OutboxMessage` rows in the same transaction (§4) |
 
 ### `AuditableEntityInterceptor`
 
@@ -369,7 +381,7 @@ In order:
 3. Read `ConnectionStrings:DefaultConnection`; `ArgumentNullException.ThrowIfNull` — fail fast at
    startup rather than on first request.
 4. `AddScoped<ISaveChangesInterceptor, ...>()` for `SoftDeleteInterceptor`, then
-   `AuditableEntityInterceptor`, then `DispatchDomainEventsInterceptor` — registration order is
+   `AuditableEntityInterceptor`, then `OutboxInterceptor` — registration order is
    execution order.
 5. `AddDbContext<AppDbContext>` — attaches all registered interceptors, `UseNpgsql` with
    `EnableRetryOnFailure(5, 10s)` and a 60-second command timeout.
@@ -468,6 +480,10 @@ implement it here, register it in `AddInfrastructure`.** Never the reverse.
 > against a PostgreSQL database, which would not work.
 
 ### 15.1 Background jobs
+
+A real one now exists — `Outbox/OutboxBackgroundService.cs` (timer loop, scoped work through
+`IServiceScopeFactory`, cross-instance exclusion through `IDistributedLock`). Copy its shape; the
+sketch below is another example of the same pattern.
 
 ```csharp
 // src/Taxi.Infrastructure/BackgroundJobs/ExpiredRefreshTokenSweeper.cs
@@ -577,11 +593,3 @@ public sealed class NpgsqlConnectionFactory(IConfiguration configuration) : ISql
 Caveats: raw SQL bypasses the audit interceptor and domain events, so it is read-only territory;
 JSONB columns need `->>'En'` extraction by hand; and you now have two schema truths to keep in
 sync with migrations. Always parameterize — never interpolate into `sql`.
-
-### 15.4 Outbox for reliable side effects
-
-If domain events must survive a crash, in-process `IMediator.Publish` after commit is not
-enough — the process can die between the commit and the publish. The standard fix is an
-`OutboxMessage` entity written in the **same transaction** as the
-business change, plus a `BackgroundService` (see Background jobs, above) that reads unprocessed
-rows and dispatches them. Worth it only when an external system must not miss an event.

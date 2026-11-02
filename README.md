@@ -39,7 +39,7 @@
 | 🧾 | **Result pattern** | `Result<T>` instead of exceptions for business failures, mapped to RFC 7807 `ProblemDetails` in one place |
 | 🔐 | **JWT + refresh tokens + RBAC** | HMAC-SHA256 access tokens, rotating refresh tokens (one live per user), role claims |
 | 🌍 | **English / Arabic** | Localized error and validation messages, bilingual fields stored as JSONB, chosen by `Accept-Language` |
-| 🐘 | **PostgreSQL + EF Core 10** | Migrations with retry, audit stamping, domain event dispatch |
+| 🐘 | **PostgreSQL + EF Core 10** | Migrations with retry, audit stamping, soft delete, `xmin` concurrency, transactional outbox for domain events |
 | 🚀 | **HybridCache + Redis** | Opt-in query caching, split by language, cleared by tags; Redis L2 shares it across instances |
 | 📈 | **Observability** | Serilog, OpenTelemetry, Seq, Prometheus and Grafana, all started by Docker Compose |
 | 🧪 | **Tests + CI** | xUnit suites, StyleCop on every build, GitHub Actions build and test |

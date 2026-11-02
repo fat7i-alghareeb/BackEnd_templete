@@ -500,7 +500,7 @@ erDiagram
 | `AppDbContext : IdentityDbContext<AppUser>` | Identity and business tables share one context and one transaction |
 | `SoftDeleteInterceptor` | turns `Remove()` of an `ISoftDeletable` into an update of `IsDeleted`, `DeletedAtUtc`, `DeletedBy`; a query filter hides deleted rows |
 | `AuditableEntityInterceptor` | stamps `CreatedAtUtc`, `CreatedBy`, `LastModifiedUtc`, `LastModifiedBy` from `IUser` |
-| `SaveChangesAsync` override | publishes domain events through MediatR before saving |
+| `OutboxInterceptor` + `OutboxBackgroundService` | domain events saved in the same transaction, published in the background with retries (at-least-once) |
 | `OwnsOne(...).ToJson()` | stores `LocalizedText` as one JSONB column |
 | Startup migrations | applied with 5 retries in non-Production; switch with `Database:ApplyMigrationsOnStartup` |
 | Npgsql resilience | retry on failure ×5, 60-second command timeout |
