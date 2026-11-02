@@ -1,0 +1,44 @@
+# Dependency updates. Grouped so related packages move together in one PR (EF Core and ASP.NET
+# Core must stay on the same patch level, for example). Versions are pinned centrally in
+# Directory.Packages.props, which Dependabot updates in place.
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+          - "System.*"
+          - "Npgsql*"
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry*"
+      testing:
+        patterns:
+          - "xunit*"
+          - "coverlet*"
+          - "NSubstitute"
+          - "NetArchTest*"
+          - "Testcontainers*"
+          - "Microsoft.NET.Test.Sdk"
+      serilog:
+        patterns:
+          - "Serilog*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+
+  - package-ecosystem: docker
+    directory: "/src/Taxi.Api"
+    schedule:
+      interval: weekly
+      day: monday

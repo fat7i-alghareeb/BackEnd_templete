@@ -25,8 +25,18 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore Taxi_Server.slnx
 
+    # Warnings are errors in CI: StyleCop findings and NuGet audit (NU19xx) warnings fail the build.
     - name: Build solution
-      run: dotnet build Taxi_Server.slnx --configuration Release --no-restore
+      run: dotnet build Taxi_Server.slnx --configuration Release --no-restore -warnaserror
+
+    # `dotnet list package --vulnerable` exits 0 even when it finds something, so check its output.
+    - name: Check for vulnerable packages
+      run: |
+        dotnet list Taxi_Server.slnx package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+        if grep -q "has the following vulnerable packages" vulnerable.txt; then
+          echo "::error::Vulnerable NuGet packages found (see the list above)."
+          exit 1
+        fi
 
     # The integration suite starts PostgreSQL with Testcontainers; ubuntu-latest has Docker.
     - name: Run tests with coverage

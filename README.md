@@ -324,7 +324,9 @@ dotnet test Taxi_Server.slnx --settings coverlet.runsettings --collect:"XPlat Co
 ```
 
 StyleCop runs as part of every build, and package versions are managed centrally in
-`Directory.Packages.props`.
+`Directory.Packages.props`. CI builds with `-warnaserror`, fails on any vulnerable package
+(direct or transitive), runs every suite with coverage and builds the Docker image; Dependabot
+opens grouped weekly updates for NuGet, GitHub Actions and the base images.
 
 ## 📚 Documentation
 
