@@ -98,7 +98,6 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "id": "{{carId}}",
   "make": "Toyota",
   "model": "Camry Hybrid",
   "year": 2025,
@@ -166,18 +165,17 @@ Accept-Language: ar
   "descriptionAr": "قديمة جدًا."
 }
 
-### 3e. Route id / body id mismatch → 400 from the controller's consistency check
+### 3e. Update an unknown id → 404 (the id comes from the route only; the body has none)
 PUT {{baseUrl}}/api/v1/cars/00000000-0000-0000-0000-000000000001
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "id": "00000000-0000-0000-0000-000000000002",
   "make": "Toyota",
   "model": "Camry",
   "year": 2024,
-  "descriptionEn": "Mismatched id.",
-  "descriptionAr": "معرف غير متطابق."
+  "descriptionEn": "Nobody home.",
+  "descriptionAr": "لا أحد هنا."
 }
 
 ### ---------------------------------------------------------------------------

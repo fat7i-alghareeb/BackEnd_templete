@@ -72,14 +72,9 @@ public sealed class CarsController(ISender sender) : ApiController
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> UpdateCar(Guid id, [FromBody] UpdateCarRequest request, CancellationToken ct)
     {
-        if (id != request.Id)
-        {
-            return this.BadRequest();
-        }
-
         var result = await sender.Send(
             new UpdateCarCommand(
-                request.Id,
+                id,
                 request.Make,
                 request.Model,
                 request.Year,

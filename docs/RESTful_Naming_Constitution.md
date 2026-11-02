@@ -67,17 +67,9 @@ Rules the matrix encodes:
   omitting it makes URL generation fail. Pass the **id**, not the DTO, as the route value.
 - **`PUT` and `DELETE` return 204**, no body. The command returns `Result<Updated>` /
   `Result<Deleted>` and the controller matches to `NoContent()`.
-- **`PUT` carries the id in both the route and the body**, and the action rejects a mismatch:
-
-  ```csharp
-  if (id != request.Id)
-  {
-      return this.BadRequest();
-  }
-  ```
-
-  This is the one piece of logic allowed in a controller — it is protocol consistency, not
-  business rule.
+- **`PUT` carries the id in the route only.** The request body (`UpdateCarRequest`) has no `Id`,
+  and the action passes the route id into the command — so there is no route/body mismatch to
+  check and no logic in the controller.
 - **404 comes from the handler**, as `CarErrors.NotFound`, not from a controller null check.
 
 ---

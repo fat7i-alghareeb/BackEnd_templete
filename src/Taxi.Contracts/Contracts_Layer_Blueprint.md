@@ -113,8 +113,9 @@ Everything that matters here:
   Writing prose there produces an untranslated response.
 - **Bilingual fields arrive flat** (`DescriptionEn` / `DescriptionAr`) and are combined into a
   `LocalizedText` inside the domain factory. The request never carries a nested object for this.
-- `UpdateCarRequest` includes its own `Id`. `CarsController.UpdateCar` compares it to the route id
-  and returns 400 if they disagree.
+- **Update requests carry no `Id`.** The route (`PUT /api/v1/cars/{id:guid}`) is the only source
+  of the resource identity; `CarsController.UpdateCar` passes the route id into the command. There
+  is no route/body mismatch to reject, so the controller stays free of `if` statements.
 
 Nested objects need `[ValidateComplexType]` on the parent property, or their annotations are not
 evaluated. That is the only reason the DataAnnotations.Validation package is referenced.

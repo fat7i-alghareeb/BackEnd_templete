@@ -170,16 +170,8 @@ The conventions, all mandatory:
 Route constraints do real work: `[HttpGet("{id:guid}")]` rejects a malformed id at routing time, so
 no validator is needed for it.
 
-`UpdateCar` contains the one sanctioned piece of controller logic:
-
-```csharp
-if (id != request.Id)
-{
-    return this.BadRequest();
-}
-```
-
-That is a protocol consistency check (route vs body), not a business rule.
+`UpdateCar` takes the id from the route only — `UpdateCarRequest` has no `Id` property — so there
+is no route/body consistency check and no controller logic at all.
 
 ### `IdentityController`
 
