@@ -381,7 +381,10 @@ These files **are** the templates. Read the current source rather than a copy th
 **Not visible in those files — read before you copy:**
 
 - `Car` has **no** `Delete()`. Removal is `context.Cars.Remove(car)` in the handler. Add a domain
-  method only when deletion carries a rule (soft delete, "cannot delete an assigned car").
+  method only when deletion carries a rule ("cannot delete an assigned car").
+- `Car` is **soft-deleted**: it implements `ISoftDeletable`, `SoftDeleteInterceptor` turns
+  `Remove` into an update stamping `IsDeleted` / `DeletedAtUtc` / `DeletedBy`, and a global query
+  filter hides the row everywhere. Implement the interface on a new entity to get the same.
 - `RemoveCarCommand` has **no validator**, and that is legal — `ValidationBehavior` accepts a null
   validator. Skip it when a route constraint (`{id:guid}`) already guarantees the input.
 - `CreatedAtAction` **must** pass `version = this.RequestedApiVersion` in the route values, or URL
@@ -414,6 +417,7 @@ HTTP request
       → Handler                       domain call + IAppDbContext + SaveChangesAsync
           → AppDbContext.SaveChangesAsync
               → dispatch domain events via IMediator.Publish
+              → SoftDeleteInterceptor turns deletes of ISoftDeletable into IsDeleted updates
               → AuditableEntityInterceptor stamps Created*/LastModified*
               → PostgreSQL
   → Result<T>

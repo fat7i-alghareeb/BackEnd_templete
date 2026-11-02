@@ -268,7 +268,12 @@ Rules the shape encodes:
 
 `Car` has **no** `Delete()` method: `RemoveCarCommandHandler` calls `context.Cars.Remove(car)`
 directly, because deletion carries no business rule here. Add a domain method only when it does
-(soft delete, "cannot delete an assigned car", etc.).
+("cannot delete an assigned car", etc.).
+
+`Car` implements `ISoftDeletable` (`Common/ISoftDeletable.cs`): `IsDeleted`, `DeletedAtUtc`,
+`DeletedBy`. As with the audit fields, the setters are public only so Infrastructure's
+`SoftDeleteInterceptor` can turn `Remove(car)` into an update — domain code never assigns them, and
+the row is never physically deleted.
 
 `RefreshToken` follows the same pattern with get-only properties, since nothing mutates it after
 creation.

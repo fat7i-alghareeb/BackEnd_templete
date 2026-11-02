@@ -37,6 +37,9 @@ public static class DependencyInjection
                 "an environment variable (ConnectionStrings__DefaultConnection) or .env.");
         }
 
+        // Order matters: soft delete turns Deleted into Modified first, so the audit interceptor
+        // then stamps LastModified* on the same entry.
+        services.AddScoped<ISaveChangesInterceptor, SoftDeleteInterceptor>();
         services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
         services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
 

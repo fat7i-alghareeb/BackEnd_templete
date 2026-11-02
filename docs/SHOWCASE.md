@@ -498,6 +498,7 @@ erDiagram
 | ⚙️ Mechanism | What it does |
 |:--|:--|
 | `AppDbContext : IdentityDbContext<AppUser>` | Identity and business tables share one context and one transaction |
+| `SoftDeleteInterceptor` | turns `Remove()` of an `ISoftDeletable` into an update of `IsDeleted`, `DeletedAtUtc`, `DeletedBy`; a query filter hides deleted rows |
 | `AuditableEntityInterceptor` | stamps `CreatedAtUtc`, `CreatedBy`, `LastModifiedUtc`, `LastModifiedBy` from `IUser` |
 | `SaveChangesAsync` override | publishes domain events through MediatR before saving |
 | `OwnsOne(...).ToJson()` | stores `LocalizedText` as one JSONB column |

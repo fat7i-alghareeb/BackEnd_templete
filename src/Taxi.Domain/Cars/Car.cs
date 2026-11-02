@@ -3,7 +3,7 @@ namespace Taxi.Domain.Cars;
 using Taxi.Domain.Common;
 using Taxi.Domain.Common.Results;
 
-public sealed class Car : AuditableEntity
+public sealed class Car : AuditableEntity, ISoftDeletable
 {
     private Car()
     {
@@ -25,6 +25,12 @@ public sealed class Car : AuditableEntity
     public int Year { get; private set; }
 
     public LocalizedText Description { get; private set; } = null!;
+
+    public bool IsDeleted { get; set; }
+
+    public DateTimeOffset? DeletedAtUtc { get; set; }
+
+    public string? DeletedBy { get; set; }
 
     public static Result<Car> Create(Guid id, string make, string model, int year, string descriptionEn, string descriptionAr)
     {

@@ -56,7 +56,8 @@ src/Taxi.Infrastructure/
 │   ├── Interceptors/
 │   │   ├── AuditableEntityExtensions.cs
 │   │   ├── AuditableEntityInterceptor.cs
-│   │   └── DispatchDomainEventsInterceptor.cs
+│   │   ├── DispatchDomainEventsInterceptor.cs
+│   │   └── SoftDeleteInterceptor.cs
 │   └── Migrations/
 │       ├── 20260502062106_Initial_Cars.cs
 │       ├── 20260502070738_AddLocalizedDescriptionToCar.cs
@@ -198,6 +199,7 @@ Adding a third means registering it there and nothing else.
 
 | Interceptor | Runs | Does |
 |---|---|---|
+| `SoftDeleteInterceptor` | `SavingChanges` | Turns a delete of an `ISoftDeletable` into an update stamping `IsDeleted`, `DeletedAtUtc`, `DeletedBy` |
 | `AuditableEntityInterceptor` | `SavingChanges` | Stamps audit columns |
 | `DispatchDomainEventsInterceptor` | `SavingChanges` + `SavedChanges` | Collects events before the write, publishes after the commit (§4) |
 
@@ -215,6 +217,22 @@ Values come from `IUser` (implemented in the **API** layer as `CurrentUser`) and
 (registered as `TimeProvider.System`, so tests can substitute a fake clock).
 
 `AuditableEntityExtensions.HasChangedOwnedEntities` is the supporting extension.
+
+### Soft delete
+
+`Car` implements `ISoftDeletable` (Domain). Handlers still call `context.Cars.Remove(car)`;
+`SoftDeleteInterceptor` — registered **before** the audit interceptor, so the entry it turns into
+`Modified` also gets `LastModified*` — flips the state back to `Modified` and stamps
+`IsDeleted = true`, `DeletedAtUtc`, `DeletedBy` (from `IUser`). Owned references cascaded to
+`Deleted` with the owner (the `LocalizedText` JSON column) are reset to `Unchanged`, or EF would
+null the column.
+
+`AppDbContext.ApplySoftDeleteQueryFilters` adds `WHERE NOT "IsDeleted"` to every root
+`ISoftDeletable` entity type, so every query — lists, by-id lookups, the second `DELETE` — simply
+no longer sees the row (a deleted car is a 404). Use `IgnoreQueryFilters()` only for a deliberate
+"show deleted" / "restore" use case.
+
+To make another entity soft-deletable: implement `ISoftDeletable`, add a migration. Nothing else.
 
 ---
 
@@ -324,7 +342,9 @@ In order:
 2. `AddSingleton(TimeProvider.System)`.
 3. Read `ConnectionStrings:DefaultConnection`; `ArgumentNullException.ThrowIfNull` — fail fast at
    startup rather than on first request.
-4. `AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>()`.
+4. `AddScoped<ISaveChangesInterceptor, ...>()` for `SoftDeleteInterceptor`, then
+   `AuditableEntityInterceptor`, then `DispatchDomainEventsInterceptor` — registration order is
+   execution order.
 5. `AddDbContext<AppDbContext>` — attaches all registered interceptors, `UseNpgsql` with
    `EnableRetryOnFailure(5, 10s)` and a 60-second command timeout.
 6. `AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>())` — the same scoped

@@ -29,5 +29,11 @@ public class CarConfiguration : IEntityTypeConfiguration<Car>
         });
 
         builder.HasIndex(c => new { c.Make, c.Model });
+
+        builder.Property(c => c.IsDeleted)
+               .HasDefaultValue(false);
+
+        builder.Property(c => c.DeletedBy)
+               .HasMaxLength(450);
     }
 }

@@ -250,6 +250,8 @@ share one context and one transaction.
 - `SaveChangesAsync` is overridden to **dispatch domain events via `IMediator.Publish` before**
   calling `base.SaveChangesAsync`. The mechanism is complete; no concrete `DomainEvent` subclass
   exists yet.
+- `SoftDeleteInterceptor` turns a delete of any `ISoftDeletable` (today `Car`) into an update of
+  `IsDeleted` / `DeletedAtUtc` / `DeletedBy`; a global query filter hides deleted rows.
 - `AuditableEntityInterceptor` (an `ISaveChangesInterceptor`) stamps `CreatedAtUtc` / `CreatedBy` /
   `LastModifiedUtc` / `LastModifiedBy` from `IUser` and `TimeProvider`, including owned entities.
 - `ApplicationDbContextInitialiser` runs `MigrateAsync`, then seeds the roles, the `Seed:Admin`
