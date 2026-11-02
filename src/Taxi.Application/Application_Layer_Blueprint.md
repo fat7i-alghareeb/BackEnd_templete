@@ -305,7 +305,7 @@ fails the build if either is broken:
 > **not** discover open-generic `IRequestPreProcessor<>` implementations. Before that call was
 > added, `LoggingBehaviour` was registered nowhere and silently never ran. Remove the line and
 > request logging disappears with no error.
-
+>
 > 🔒 **Payloads are logged with `{@Request}`** by `LoggingBehaviour`, `PerformanceBehaviour` and
 > `UnhandledExceptionBehaviour`, through `RequestLogPayload.For(request)`. A request that carries a
 > password, a token or a stream implements `ISensitiveRequest` and is logged as `[redacted]`.
