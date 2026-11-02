@@ -83,3 +83,14 @@ jobs:
 
     - name: Build the API image
       run: docker build --file src/Taxi.Api/Dockerfile --tag taxi-api:ci .
+
+  # Docs are part of the template; keep them lint-clean (.markdownlint-cli2.jsonc).
+  markdown-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Lint Markdown
+      uses: DavidAnson/markdownlint-cli2-action@v20

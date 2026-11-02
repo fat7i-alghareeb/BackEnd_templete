@@ -1,0 +1,10 @@
+# Default owner for everything. Reviews from these owners are requested automatically on PRs.
+# Add more specific paths below as the team grows (later rules win), e.g.:
+#   /src/Taxi.Infrastructure/Data/Migrations/  @your-org/dba
+*                                   @fat7i-alghareeb
+
+# Changes that alter security, the build or the layer rules deserve an explicit look.
+/.github/                           @fat7i-alghareeb
+/Directory.Packages.props           @fat7i-alghareeb
+/src/Taxi.Api/DependencyInjection.cs @fat7i-alghareeb
+/AGENTS.md                          @fat7i-alghareeb
