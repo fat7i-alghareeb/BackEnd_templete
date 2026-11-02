@@ -61,10 +61,16 @@ token), `403` (role or policy denied), `409` (`ErrorKind.Conflict`), `429` (rate
 
 Rules the matrix encodes:
 
-- **`POST` returns 201 with a `Location` header**, produced by
-  `CreatedAtAction(nameof(this.GetCar), new { version = "1.0", id = car.Id }, car)`. The
-  `version` route value is required — the route template contains a `version` segment, and
-  omitting it makes URL generation fail. Pass the **id**, not the DTO, as the route value.
+- **`POST` returns 201 with a `Location` header**, produced by:
+
+  ```csharp
+  this.CreatedAtAction(nameof(this.GetCar), new { version = this.RequestedApiVersion, id = car.Id }, car)
+  ```
+
+  The `version` route value is required — the route template contains a `version` segment, and
+  omitting it makes URL generation fail. Use `RequestedApiVersion` (on `ApiController`), never a
+  literal: it is the version the client called, so `Location` stays correct when v2 is added.
+  Pass the **id**, not the DTO, as the route value.
 - **`PUT` and `DELETE` return 204**, no body. The command returns `Result<Updated>` /
   `Result<Deleted>` and the controller matches to `NoContent()`.
 - **`PUT` carries the id in the route only.** The request body (`UpdateCarRequest`) has no `Id`,

@@ -147,7 +147,7 @@ public sealed class CarsController(ISender sender) : ApiController
             ct);
 
         return result.Match(
-            car => this.CreatedAtAction(nameof(this.GetCar), new { version = "1.0", id = car.Id }, car),
+            car => this.CreatedAtAction(nameof(this.GetCar), new { version = this.RequestedApiVersion, id = car.Id }, car),
             this.Problem);
     }
 }
@@ -465,7 +465,8 @@ changing it would cost.
 | `return Ok(car)` where `car` is a `Car` | Return the DTO the handler produced |
 | Omitting `[EndpointName]` | Every action has one |
 | Omitting `CancellationToken` | Every action takes and forwards `ct` |
-| `CreatedAtAction(..., new { id = dto }, dto)` | `new { version = "1.0", id = dto.Id }` — the fixed bug |
+| `CreatedAtAction(..., new { id = dto }, dto)` | `new { version = this.RequestedApiVersion, id = dto.Id }` — the fixed bug |
+| `new { version = "1.0", ... }` | `this.RequestedApiVersion` (from `ApiController`) — a literal breaks `Location` once v2 exists and renders `v1.0` instead of `v1` |
 | Building `ProblemDetails` by hand | `return result.Match(success, this.Problem);` |
 | Registering middleware directly in `Program.cs` | Add it to `UseCoreMiddlewares`, in the right position |
 | Binding an Application command straight from `[FromBody]` | Bind a `Taxi.Contracts` request and map it |

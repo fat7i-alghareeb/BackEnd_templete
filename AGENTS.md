@@ -384,8 +384,9 @@ These files **are** the templates. Read the current source rather than a copy th
   method only when deletion carries a rule (soft delete, "cannot delete an assigned car").
 - `RemoveCarCommand` has **no validator**, and that is legal — `ValidationBehavior` accepts a null
   validator. Skip it when a route constraint (`{id:guid}`) already guarantees the input.
-- `CreatedAtAction` **must** pass `version` in the route values, or URL generation fails against
-  the `api/v{version:apiVersion}/…` template. Pass the scalar id, never the DTO.
+- `CreatedAtAction` **must** pass `version = this.RequestedApiVersion` in the route values, or URL
+  generation fails against the `api/v{version:apiVersion}/…` template. Never a literal like
+  `"1.0"` — it breaks once v2 exists. Pass the scalar id, never the DTO.
 - The handler supplies the id: `Car.Create(Guid.NewGuid(), ...)`. The entity does not generate it.
 - Guards run **before** any assignment, so a rejected `Update` leaves the entity untouched. Keep
   that order.

@@ -58,7 +58,7 @@ public sealed class CarsController(ISender sender) : ApiController
             ct);
 
         return result.Match(
-            car => this.CreatedAtAction(nameof(this.GetCar), new { version = "1.0", id = car.Id }, car),
+            car => this.CreatedAtAction(nameof(this.GetCar), new { version = this.RequestedApiVersion, id = car.Id }, car),
             this.Problem);
     }
 
