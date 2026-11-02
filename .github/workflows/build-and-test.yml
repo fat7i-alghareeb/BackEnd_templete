@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -79,7 +79,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Build the API image
       run: docker build --file src/Taxi.Api/Dockerfile --tag taxi-api:ci .
@@ -90,7 +90,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Lint Markdown
       uses: DavidAnson/markdownlint-cli2-action@v20
