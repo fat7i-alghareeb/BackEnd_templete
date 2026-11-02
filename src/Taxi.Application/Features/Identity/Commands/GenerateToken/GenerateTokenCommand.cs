@@ -1,4 +1,5 @@
 using MediatR;
+using Taxi.Application.Common.Interfaces;
 
 using Taxi.Application.Features.Identity.Dtos;
 using Taxi.Domain.Common.Results;
@@ -11,4 +12,4 @@ namespace Taxi.Application.Features.Identity.Commands.GenerateToken;
 /// </summary>
 public record GenerateTokenCommand(
     string Email,
-    string Password) : IRequest<Result<TokenResponse>>;
+    string Password) : IRequest<Result<TokenResponse>>, ISensitiveRequest;

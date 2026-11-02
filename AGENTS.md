@@ -114,6 +114,8 @@ type breaks one of these arrows** or the conventions in §2 (NetArchTest), and
   `Result<Updated>` or `Result<Deleted>`.
 - **MUST** name anything that writes a `Command`, even when it is reached by a `GET`-shaped idea.
   Token issuance is `GenerateTokenCommand` because it rotates the refresh token.
+- **MUST** mark a request that carries a password, token or stream with `ISensitiveRequest`. The
+  logging behaviours write every other payload to the logs in full; a test fails if you forget.
 - **MUST** access the database only through `IAppDbContext`.
 - **MUST** use `.AsNoTracking()` in query handlers.
 - **MUST** map to a DTO before returning. Never return an entity.

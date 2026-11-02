@@ -32,7 +32,7 @@ public class LoggingBehaviour<TRequest>(ILogger<TRequest> logger, IUser user)
             "Request: {Name} {@UserId} {@Request}",
             typeof(TRequest).Name,
             this.user.Id ?? string.Empty,
-            request);
+            RequestLogPayload.For(request));
 
         return Task.CompletedTask;
     }

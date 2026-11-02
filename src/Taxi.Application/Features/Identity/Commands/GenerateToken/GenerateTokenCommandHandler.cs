@@ -2,6 +2,7 @@ namespace Taxi.Application.Features.Identity.Commands.GenerateToken;
 
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Taxi.Application.Common;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Application.Features.Identity.Dtos;
 using Taxi.Domain.Common.Results;
@@ -22,7 +23,7 @@ public class GenerateTokenCommandHandler(
 
         if (checkPasswordResult.IsError)
         {
-            this.logger.LogError("Check password error occurred for email {Email}: {ErrorDescription}", request.Email, checkPasswordResult.TopError.Description);
+            this.logger.LogWarning("Sign-in failed for {Email}: {ErrorDescription}", UtilityService.MaskEmail(request.Email), checkPasswordResult.TopError.Description);
             return checkPasswordResult.Errors;
         }
 
@@ -30,7 +31,7 @@ public class GenerateTokenCommandHandler(
 
         if (generateTokenResult.IsError)
         {
-            this.logger.LogError("Generate token error occurred for email {Email}: {ErrorDescription}", request.Email, generateTokenResult.TopError.Description);
+            this.logger.LogError("Token generation failed for {Email}: {ErrorDescription}", UtilityService.MaskEmail(request.Email), generateTokenResult.TopError.Description);
             return generateTokenResult.Errors;
         }
 

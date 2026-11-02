@@ -292,7 +292,7 @@ RequestPreProcessorBehavior      ← MediatR's own, prepended; hosts LoggingBeha
 | `ValidationBehavior<TRequest,TResponse>` | `where TResponse : IResult` — so only requests returning `Result<T>` | Runs the injected `IValidator<TRequest>` if one exists; on failure maps each `ValidationFailure` to `Error.ValidationForProperty(e.PropertyName, e.ErrorMessage)` and returns `(dynamic)errors`, relying on `Result<T>`'s implicit `List<Error>` conversion. The handler never runs. |
 | `PerformanceBehaviour` | all | `Stopwatch`; logs a warning above 500 ms with request name, user id, user name and payload. Resolves the user name through `IIdentityService`, so it costs a database round-trip — but only on requests that are already slow. |
 | `CachingBehavior` | `ICachedQuery` only | Registered **last**, so it sits closest to the handler and a cache hit skips as little work as possible. See §8. |
-| `LoggingBehaviour<TRequest>` | all | **Not a pipeline behaviour** — an `IRequestPreProcessor<TRequest>`, hosted by MediatR's own `RequestPreProcessorBehavior`, which runs before everything. Logs request name, user id and payload. |
+| `LoggingBehaviour<TRequest>` | all | **Not a pipeline behaviour** — an `IRequestPreProcessor<TRequest>`, hosted by MediatR's own `RequestPreProcessorBehavior`, which runs before everything. Logs request name, user id and payload — `[redacted]` for an `ISensitiveRequest`. |
 
 Two ordering rules are load-bearing, and
 [`PipelineRegistrationTests`](../../tests/Taxi.Application.UnitTests/Common/PipelineRegistrationTests.cs)
@@ -305,6 +305,12 @@ fails the build if either is broken:
 > **not** discover open-generic `IRequestPreProcessor<>` implementations. Before that call was
 > added, `LoggingBehaviour` was registered nowhere and silently never ran. Remove the line and
 > request logging disappears with no error.
+
+> 🔒 **Payloads are logged with `{@Request}`** by `LoggingBehaviour`, `PerformanceBehaviour` and
+> `UnhandledExceptionBehaviour`, through `RequestLogPayload.For(request)`. A request that carries a
+> password, a token or a stream implements `ISensitiveRequest` and is logged as `[redacted]`.
+> `SensitiveRequestTests` fails when a request with such a property is not marked — plaintext
+> passwords once reached the logs this way.
 
 ---
 
