@@ -32,6 +32,18 @@ Accept-Language: ar
   "password": "wrong-password"
 }
 
+### 1a-2. Read-only account (role `User`) — can list cars, gets 403 on writes
+# @name generateUserToken
+POST {{baseUrl}}/api/token/generate
+Content-Type: application/json
+
+{
+  "email": "user@taxi.com",
+  "password": "User123!"
+}
+
+@userToken = {{generateUserToken.response.body.accessToken}}
+
 ### 1b. Refresh the access token (rotates the refresh token — one live token per user)
 POST {{baseUrl}}/api/token/refresh-token
 Content-Type: application/json
@@ -108,6 +120,19 @@ Authorization: Bearer {{token}}
 
 ### 3a. No token → 401
 GET {{baseUrl}}/api/v1/cars
+
+### 3a-2. Authenticated but not a Manager → 403 (policy CanManageCars)
+POST {{baseUrl}}/api/v1/cars
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "make": "Fiat",
+  "model": "Panda",
+  "year": 2020,
+  "descriptionEn": "Readers cannot write.",
+  "descriptionAr": "القراء لا يكتبون."
+}
 
 ### 3b. Unknown id → 404, title from LocalizationKeys.Car.NotFound
 GET {{baseUrl}}/api/v1/cars/00000000-0000-0000-0000-000000000001

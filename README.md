@@ -110,8 +110,9 @@ In Development, the API docs are served at:
 | ✨ Scalar | `/scalar/v1` |
 
 Sample calls are in [requests/requests.http](requests/requests.http). In Development, sign in
-with the seeded `admin@taxi.com` / `Admin123!` account (role `Manager`). Those credentials come
-from `Seed:Admin` in `appsettings.Development.json`; any other environment seeds an account only
+with the seeded `admin@taxi.com` / `Admin123!` account (role `Manager`), or `user@taxi.com` /
+`User123!` (role `User`, read-only — writes return 403). Those credentials come from `Seed:Admin`
+and `Seed:User` in `appsettings.Development.json`; any other environment seeds an account only
 when `Seed__Admin__Email` and `Seed__Admin__Password` are set.
 
 <details>

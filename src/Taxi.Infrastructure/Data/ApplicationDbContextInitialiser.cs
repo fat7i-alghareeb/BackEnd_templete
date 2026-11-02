@@ -75,6 +75,7 @@ public class ApplicationDbContextInitialiser(
 
         // 2. Bootstrap admin — only when Seed:Admin:Email and Seed:Admin:Password are configured.
         await this.SeedUserAsync(this.seedSettings.Admin, Roles.Manager);
+        await this.SeedUserAsync(this.seedSettings.User, Roles.User);
 
         // 3. Sample data — opt-in, so a fresh staging or production database starts empty.
         if (this.seedSettings.SampleData && !await this.context.Cars.AnyAsync())

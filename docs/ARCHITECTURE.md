@@ -249,9 +249,9 @@ share one context and one transaction.
 - `AuditableEntityInterceptor` (an `ISaveChangesInterceptor`) stamps `CreatedAtUtc` / `CreatedBy` /
   `LastModifiedUtc` / `LastModifiedBy` from `IUser` and `TimeProvider`, including owned entities.
 - `ApplicationDbContextInitialiser` runs `MigrateAsync`, then seeds the roles, the `Seed:Admin`
-  account (only when configured — Development uses `admin@taxi.com`) and, when
-  `Seed:SampleData` is true, one sample car. `ResetDatabaseAsync` is destructive and gated to
-  Development behind `Database:ResetOnStartup`.
+  and `Seed:User` accounts (only when configured — Development uses `admin@taxi.com` and
+  `user@taxi.com`) and, when `Seed:SampleData` is true, one sample car. `ResetDatabaseAsync` is
+  destructive and gated to Development behind `Database:ResetOnStartup`.
 - Startup migration is driven by `ApplyMigrationsWithRetryAsync` in `Taxi.Api/DependencyInjection.cs`
   (5 attempts, 3 s apart), gated by `Database:ApplyMigrationsOnStartup` — defaulting to on outside
   Production.

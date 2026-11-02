@@ -15,6 +15,9 @@ public sealed class SeedSettings
     /// <summary>Gets or sets the bootstrap account placed in the <c>Manager</c> role.</summary>
     public SeedUserSettings Admin { get; set; } = new();
 
+    /// <summary>Gets or sets a demo account placed in the <c>User</c> role, for exercising read-only access.</summary>
+    public SeedUserSettings User { get; set; } = new();
+
     /// <summary>Gets or sets a value indicating whether to insert demo rows (one car) into an empty database.</summary>
     public bool SampleData { get; set; }
 }
