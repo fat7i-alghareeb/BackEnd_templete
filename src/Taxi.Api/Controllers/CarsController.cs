@@ -26,7 +26,16 @@ public sealed class CarsController(ISender sender) : ApiController
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> GetCars([FromQuery] GetCarsRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(new GetCarsQuery(request.Page, request.PageSize), ct);
+        var result = await sender.Send(
+            new GetCarsQuery(
+                request.Page,
+                request.PageSize,
+                request.Search,
+                request.Make,
+                request.Year,
+                request.SortBy,
+                request.SortDirection),
+            ct);
         return result.Match(this.Ok, this.Problem);
     }
 

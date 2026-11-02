@@ -66,6 +66,15 @@ GET {{baseUrl}}/api/v1/cars?page=1&pageSize=20
 Authorization: Bearer {{token}}
 Accept-Language: {{lang}}
 
+### 2a-2. Filter and sort: make or model contains "cam", newest model year first
+GET {{baseUrl}}/api/v1/cars?search=cam&sortBy=year&sortDirection=desc
+Authorization: Bearer {{token}}
+Accept-Language: {{lang}}
+
+### 2a-3. Exact make and year
+GET {{baseUrl}}/api/v1/cars?make=tesla&year=2024
+Authorization: Bearer {{token}}
+
 ### 2b. Same list in Arabic — separate cache entry (`cars_ar`), different description
 GET {{baseUrl}}/api/v1/cars
 Authorization: Bearer {{token}}
@@ -140,6 +149,11 @@ Authorization: Bearer {{token}}
 
 ### 3b-2. Invalid page → 400 keyed by "Page" (pageSize above 100 is clamped, not rejected)
 GET {{baseUrl}}/api/v1/cars?page=0
+Authorization: Bearer {{token}}
+Accept-Language: {{lang}}
+
+### 3b-3. Unknown sort field → 400 keyed by "SortBy" (whitelist: make, model, year, createdAt)
+GET {{baseUrl}}/api/v1/cars?sortBy=price
 Authorization: Bearer {{token}}
 Accept-Language: {{lang}}
 

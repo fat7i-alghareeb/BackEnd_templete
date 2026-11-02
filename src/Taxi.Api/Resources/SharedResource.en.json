@@ -25,5 +25,8 @@
   "Validation.Description.Required": "Car description is required.",
   "RateLimit.Exceeded": "Too many requests. Please try again later.",
   "Validation.Page.Invalid": "Page must be 1 or greater.",
-  "Validation.PageSize.Invalid": "Page size must be 1 or greater."
+  "Validation.PageSize.Invalid": "Page size must be 1 or greater.",
+  "Validation.Search.TooLong": "Search text must be 100 characters or fewer.",
+  "Validation.SortBy.Invalid": "Sort field must be one of: make, model, year, createdAt.",
+  "Validation.SortDirection.Invalid": "Sort direction must be \"asc\" or \"desc\"."
 }

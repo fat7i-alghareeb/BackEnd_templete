@@ -25,5 +25,8 @@
   "Validation.Description.Required": "وصف السيارة مطلوب.",
   "RateLimit.Exceeded": "عدد كبير جدًا من الطلبات. يرجى المحاولة لاحقًا.",
   "Validation.Page.Invalid": "يجب أن يكون رقم الصفحة 1 أو أكثر.",
-  "Validation.PageSize.Invalid": "يجب أن يكون حجم الصفحة 1 أو أكثر."
+  "Validation.PageSize.Invalid": "يجب أن يكون حجم الصفحة 1 أو أكثر.",
+  "Validation.Search.TooLong": "يجب ألا يتجاوز نص البحث 100 حرف.",
+  "Validation.SortBy.Invalid": "يجب أن يكون حقل الترتيب أحد القيم: make أو model أو year أو createdAt.",
+  "Validation.SortDirection.Invalid": "يجب أن يكون اتجاه الترتيب \"asc\" أو \"desc\"."
 }

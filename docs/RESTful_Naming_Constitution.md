@@ -49,7 +49,7 @@ The matrix `CarsController` implements:
 
 | Verb | Route | Action | Success | Failure |
 |---|---|---|---|---|
-| `GET` | `/cars?page=&pageSize=` | `GetCars` | `200` + `PaginatedList<CarDto>` | `400` |
+| `GET` | `/cars?page=&pageSize=&search=&make=&year=&sortBy=&sortDirection=` | `GetCars` | `200` + `PaginatedList<CarDto>` | `400` |
 | `GET` | `/cars/{id:guid}` | `GetCar` | `200` + `CarDto` | `404` |
 | `POST` | `/cars` | `CreateCar` | `201` + `CarDto` + `Location` | `400` |
 | `PUT` | `/cars/{id:guid}` | `UpdateCar` | `204` | `400`, `404` |

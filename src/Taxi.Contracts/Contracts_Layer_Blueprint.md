@@ -254,16 +254,29 @@ English `Error.Description`.
 
 ---
 
-## 10a. Paging and list queries
+## 10a. Paging, filtering and sorting
 
-`GET /api/v1/cars` is paged. The pieces, and where each lives:
+`GET /api/v1/cars` is paged, filtered and sorted. The pieces, and where each lives:
 
 | Piece | Where |
 |---|---|
-| Query-string contract | `Requests/Cars/GetCarsRequest.cs`, bound with `[FromQuery]` — `page`, `pageSize` |
+| Query-string contract | `Requests/Cars/GetCarsRequest.cs`, bound with `[FromQuery]` |
+| Sort whitelist | `Requests/Cars/CarSortFields.cs` (`make`, `model`, `year`, `createdAt`) and `Common/SortDirections.cs` (`asc`, `desc`) |
 | Limits | `Taxi.Application/Common/Models/Paging.cs` — default 20, **max 100 (clamped, not rejected)** |
 | Envelope | `Taxi.Application/Common/Models/PaginatedList<T>` — returned as the response body |
-| Validation keys | `LocalizationKeys.Validation.PageInvalid` / `PageSizeInvalid` (page or size below 1 → 400) |
+| Validation keys | `LocalizationKeys.Validation.PageInvalid` / `PageSizeInvalid` (below 1 → 400), `SearchTooLong`, `SortByInvalid`, `SortDirectionInvalid` |
+
+| Parameter | Meaning | Default |
+|---|---|---|
+| `page`, `pageSize` | 1-based page; size clamped to 100 | `1`, `20` |
+| `search` | make **or** model contains the text, case-insensitive | — |
+| `make` | exact make, case-insensitive | — |
+| `year` | exact year | — |
+| `sortBy` | one of `CarSortFields.All`, case-insensitive; anything else → 400 | `createdAt` |
+| `sortDirection` | `asc` or `desc`, case-insensitive | `desc` |
+
+Sorting is a **whitelist mapped to key selectors** in the handler, never a column name passed to
+SQL, and `Id` is always the final tie-breaker so page boundaries are deterministic.
 
 The response shape:
 
@@ -283,7 +296,8 @@ The envelope is an Application type, consistent with §6: outbound shapes are Ap
 Never return a bare JSON array from a collection endpoint — adding metadata later is a breaking
 change for every deserializer.
 
-Every paging input is part of the query's `CacheKey`, so each page is cached separately; the
+Every paging, filter and sort input is part of the query's `CacheKey` (trimmed and lower-cased,
+so `?make=Tesla` and `?make=tesla` share an entry), so each combination is cached separately; the
 shared `CacheTags.Cars` tag is what lets one `RemoveByTagAsync` evict them all.
 
 ---

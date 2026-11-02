@@ -47,5 +47,8 @@ public static class LocalizationKeys
         public const string DescriptionRequired = "Validation.Description.Required";
         public const string PageInvalid = "Validation.Page.Invalid";
         public const string PageSizeInvalid = "Validation.PageSize.Invalid";
+        public const string SearchTooLong = "Validation.Search.TooLong";
+        public const string SortByInvalid = "Validation.SortBy.Invalid";
+        public const string SortDirectionInvalid = "Validation.SortDirection.Invalid";
     }
 }
