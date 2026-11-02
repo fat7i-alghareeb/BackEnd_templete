@@ -309,6 +309,13 @@ dotnet list package --vulnerable --include-transitive
 The integration suite needs a running Docker daemon; everything else runs anywhere. Run one suite
 with `dotnet test tests/<Project>`.
 
+Coverage, as CI collects it (the job summary shows the table and the HTML report is attached as an
+artifact):
+
+```bash
+dotnet test Taxi_Server.slnx --settings coverlet.runsettings --collect:"XPlat Code Coverage" --results-directory ./coverage
+```
+
 StyleCop runs as part of every build, and package versions are managed centrally in
 `Directory.Packages.props`.
 

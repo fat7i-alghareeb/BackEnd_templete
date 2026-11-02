@@ -6,6 +6,9 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -20,10 +23,42 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Taxi_Server.slnx
 
     - name: Build solution
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build Taxi_Server.slnx --configuration Release --no-restore
 
-    - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity normal
+    # The integration suite starts PostgreSQL with Testcontainers; ubuntu-latest has Docker.
+    - name: Run tests with coverage
+      run: >
+        dotnet test Taxi_Server.slnx
+        --configuration Release
+        --no-build
+        --settings coverlet.runsettings
+        --collect:"XPlat Code Coverage"
+        --results-directory ./coverage
+        --logger "trx;LogFilePrefix=results"
+
+    - name: Build coverage report
+      if: always()
+      uses: danielpalme/ReportGenerator-GitHub-Action@5
+      with:
+        reports: coverage/**/coverage.cobertura.xml
+        targetdir: coverage/report
+        reporttypes: HtmlInline;MarkdownSummaryGithub;Cobertura
+
+    - name: Publish coverage summary
+      if: always()
+      run: |
+        if [ -f coverage/report/SummaryGithub.md ]; then
+          cat coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+    - name: Upload coverage and test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-and-test-results
+        path: |
+          coverage/report
+          coverage/**/*.trx

@@ -401,3 +401,4 @@ FodyWeavers.xsd
 
 # Local file storage (FileStorage:LocalRootPath)
 src/Taxi.Api/storage/
+coverage/
