@@ -13,6 +13,18 @@ builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
 
+builder.WebHost.ConfigureKestrel((context, options) =>
+{
+    // The Server header only advertises the stack to an attacker.
+    options.AddServerHeader = false;
+
+    // Default 1 MB: every request here is a small JSON document. Endpoints that accept files raise
+    // it locally with [RequestSizeLimit]. Kestrel does not bind its Limits from configuration by
+    // itself, so the key is read explicitly.
+    options.Limits.MaxRequestBodySize =
+        context.Configuration.GetValue<long?>("Kestrel:Limits:MaxRequestBodySize") ?? 1_048_576;
+});
+
 builder.Host.UseSerilog((context, loggerConfig) =>
     loggerConfig.ReadFrom.Configuration(context.Configuration));
 

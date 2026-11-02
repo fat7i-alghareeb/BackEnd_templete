@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace Taxi.Api.Infrastructure;
 
@@ -15,6 +16,26 @@ public class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
+        // Kestrel signals client protocol errors (body over MaxRequestBodySize → 413, malformed
+        // request → 400) with BadHttpRequestException. Those are the caller's fault and must keep
+        // their status instead of turning into a 500.
+        if (exception is BadHttpRequestException badRequest)
+        {
+            httpContext.Response.StatusCode = badRequest.StatusCode;
+
+            return await this.problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = httpContext,
+                Exception = exception,
+                ProblemDetails = new ProblemDetails
+                {
+                    Status = badRequest.StatusCode,
+                    Title = ReasonPhrases.GetReasonPhrase(badRequest.StatusCode),
+                    Detail = badRequest.Message,
+                },
+            });
+        }
+
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
         // Exception type and message are only exposed in Development. Outside it they can

@@ -48,6 +48,7 @@ public static class DependencyInjection
                 .AddConfiguredCors(configuration)
                 .AddAppRateLimiting()
                 .AddAppForwardedHeaders(configuration, environment)
+                .AddAppSecurityHardening()
                 .AddObservability()
                 .AddApiDocumentation();
 
@@ -108,6 +109,23 @@ public static class DependencyInjection
                 options.KnownProxies.Clear();
                 options.ForwardLimit = null;
             }
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// HSTS settings for <c>UseHsts()</c> (outside Development). Request body size is a Kestrel
+    /// limit bound from <c>Kestrel:Limits:MaxRequestBodySize</c> in configuration; endpoints that
+    /// accept files raise it locally with <c>[RequestSizeLimit]</c>.
+    /// </summary>
+    /// <returns>The service collection, for chaining.</returns>
+    public static IServiceCollection AddAppSecurityHardening(this IServiceCollection services)
+    {
+        services.AddHsts(options =>
+        {
+            options.MaxAge = TimeSpan.FromDays(365);
+            options.IncludeSubDomains = true;
         });
 
         return services;
@@ -417,6 +435,7 @@ public static class DependencyInjection
             .AddSupportedUICultures(Languages.All));
 
         app.UseMiddleware<RequestLogContextMiddleware>();
+        app.UseMiddleware<SecurityHeadersMiddleware>();
 
         app.UseExceptionHandler();
         app.UseStatusCodePages();

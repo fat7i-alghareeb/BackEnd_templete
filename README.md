@@ -139,6 +139,7 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 |:--|:--|:--|
 | `Database:ApplyMigrationsOnStartup` | `true` outside Production | apply migrations and seed on startup, with 5 retries |
 | `Database:ResetOnStartup` | `false` | drop and recreate the database (Development only) |
+| `Kestrel:Limits:MaxRequestBodySize` | `1048576` | request body cap in bytes; larger bodies get 413 |
 | `ConnectionStrings:Redis` | *(blank)* | HybridCache L2; blank = in-process cache only (single instance) |
 | `JwtSettings:Secret` | *(blank)* | HMAC key; the host refuses to start unless it is at least 32 characters |
 | `JwtSettings:TokenExpirationInMinutes` | `60` | access token lifetime (1–1440) |
@@ -223,7 +224,9 @@ sequenceDiagram
 - **Refresh token:** stored in the database, one live token per user, rotated on every refresh.
 - **RBAC:** `Manager` and `User` roles; endpoints use named policies (`CanReadCars`,
   `CanManageCars`) behind a fallback policy that requires authentication everywhere.
-- **Hardening:** CORS policy from config, forwarded-headers settings, and per-user / per-IP rate limiting with a stricter policy on the credential endpoints.
+- **Hardening:** CORS policy from config, forwarded-headers settings, per-user / per-IP rate
+  limiting with a stricter policy on the credential endpoints, security headers (CSP, nosniff,
+  frame-deny, referrer policy), HSTS, no `Server` header, and a 1 MB request body limit (413).
 
 ## 🌍 Localization
 

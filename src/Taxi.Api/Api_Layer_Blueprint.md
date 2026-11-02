@@ -296,6 +296,7 @@ rate limiting · forwarded headers · OpenAPI documents.
 |---|---|---|
 | 1 | `UseRequestLocalization` | Must run first so everything downstream — including the exception handler — sees the right culture |
 | 2 | `RequestLogContextMiddleware` | Pushes `CorrelationId` before anything can log |
+| 2a | `SecurityHeadersMiddleware` | Sets `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, COOP and a deny-all CSP (relaxed for `/swagger`, `/scalar`) before anything can write a response |
 | 3 | `UseExceptionHandler` | Catches everything below it |
 | 4 | `UseStatusCodePages` | Bodies for bare status results |
 | 5 | `UseHttpsRedirection` | Bounce insecure requests early |
@@ -307,6 +308,16 @@ rate limiting · forwarded headers · OpenAPI documents.
 | 11 | `UseAuthorization` | Evaluate `[Authorize]` and policies |
 
 `UseForwardedHeaders` runs earlier, in `Program.cs`, before anything reads the scheme or client IP.
+
+**Transport hardening** (`Program.cs` + `AddAppSecurityHardening`):
+
+- `UseHsts()` outside Development, max-age 365 days with `includeSubDomains`.
+- No `Server` response header (`KestrelServerOptions.AddServerHeader = false`).
+- Request bodies are capped at `Kestrel:Limits:MaxRequestBodySize` (default **1 MB**), read
+  explicitly in `ConfigureKestrel` because Kestrel does not bind its limits from configuration by
+  itself. An endpoint that accepts files raises it locally with `[RequestSizeLimit]`.
+- `GlobalExceptionHandler` keeps the status of Kestrel's `BadHttpRequestException`, so an
+  oversized body is a **413** problem response, not a 500.
 
 **There is no response-level output caching.** `AddOutputCache`/`UseOutputCache` were registered
 but no endpoint ever carried `[OutputCache]`, so they were removed. All caching happens in the
