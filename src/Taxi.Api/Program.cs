@@ -52,13 +52,14 @@ if (app.Environment.IsDevelopment())
 
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "Taxi API V1");
+        options.SwaggerEndpoint("/openapi/v2.json", "Taxi API v2");
+        options.SwaggerEndpoint("/openapi/v1.json", "Taxi API v1 (deprecated)");
         options.EnableDeepLinking();
         options.DisplayRequestDuration();
         options.EnableFilter();
     });
 
-    app.MapScalarApiReference().AllowAnonymous();
+    app.MapScalarApiReference(options => options.AddDocuments("v2", "v1")).AllowAnonymous();
 }
 else
 {

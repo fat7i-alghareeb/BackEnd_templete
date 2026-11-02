@@ -21,4 +21,19 @@ public static class CarMapper
     {
         return cars.Select(c => c.ToDto(language)).ToList();
     }
+
+    /// <summary>v2 shape: both languages, audit timestamps. No language parameter — nothing is resolved.</summary>
+    /// <returns>The details DTO.</returns>
+    public static CarDetailsDto ToDetailsDto(this Car car)
+    {
+        return new CarDetailsDto(
+            car.Id,
+            car.Make,
+            car.Model,
+            car.Year,
+            new LocalizedTextDto(car.Description.En, car.Description.Ar),
+            car.ImageKey is not null,
+            car.CreatedAtUtc,
+            car.LastModifiedUtc);
+    }
 }

@@ -104,9 +104,9 @@ In Development, the API docs are served at:
 
 | Tool | URL |
 |:--|:--|
-| 📘 OpenAPI document | `/openapi/v1.json` |
+| 📘 OpenAPI documents | `/openapi/v2.json` · `/openapi/v1.json` (deprecated) |
 | 🧭 Swagger UI | `/swagger` |
-| ✨ Scalar | `/scalar/v1` |
+| ✨ Scalar | `/scalar/v2` · `/scalar/v1` |
 
 In every environment, `/health/live` (process is up) and `/health/ready` (PostgreSQL and Redis
 reachable) answer 200 or 503 without authentication.
@@ -170,7 +170,8 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 | ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/change-password` | 🔒 | Change own password; revokes refresh tokens |
 | ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/account/logout` | 🔒 | Revoke the refresh token |
 | ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/users/{userId}/roles` | 🔒 Manager | Replace a user's roles |
-| ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars` | 🔒 | List cars — paged, filtered, sorted (cached per language) |
+| ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v2/cars` · `/api/v2/cars/{id}` | 🔒 | **v2**: cars with the description in both languages + timestamps |
+| ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars` | 🔒 | List cars — paged, filtered, sorted (cached per language). **v1 is deprecated** (`Sunset` header); writes work on both `v1` and `v2` |
 | ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars/{id}` | 🔒 | One car (cached per language) |
 | ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/v1/cars` | 🔒 Manager | Create a car; send `Idempotency-Key` to make retries safe |
 | ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/cars/{id}` | 🔒 Manager | Update a car |

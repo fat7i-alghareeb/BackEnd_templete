@@ -221,6 +221,14 @@ public static class DependencyInjection
             options.AssumeDefaultVersionWhenUnspecified = true;
             options.ReportApiVersions = true;
             options.ApiVersionReader = new UrlSegmentApiVersionReader();
+
+            // Deprecation is declared on the controller ([ApiVersion("1.0", Deprecated = true)]);
+            // the sunset date tells clients when v1 stops answering. An example date — set your own.
+            options.Policies.Sunset(1.0)
+                .Effective(new DateTimeOffset(2027, 12, 31, 0, 0, 0, TimeSpan.Zero))
+                .Link("https://github.com/fat7i-alghareeb/BackEnd_templete/blob/main/docs/RESTful_Naming_Constitution.md")
+                    .Title("API versioning policy")
+                    .Type("text/html");
         }).AddMvc()
         .AddApiExplorer(options =>
         {
@@ -258,7 +266,8 @@ public static class DependencyInjection
 
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
     {
-        string[] versions = ["v1"];
+        // One OpenAPI document per API version; the names match the ApiExplorer group names ('v'VVV).
+        string[] versions = ["v1", "v2"];
 
         foreach (var version in versions)
         {

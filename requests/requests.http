@@ -142,6 +142,10 @@ Accept-Language: {{lang}}
 GET {{baseUrl}}/api/v1/cars?make=tesla&year=2024
 Authorization: Bearer {{token}}
 
+### 2a-4. API v2: the description in both languages + timestamps (v1 answers with a Sunset header)
+GET {{baseUrl}}/api/v2/cars?pageSize=5
+Authorization: Bearer {{token}}
+
 ### 2b. Same list in Arabic — separate cache entry (`cars_ar`), different description
 GET {{baseUrl}}/api/v1/cars
 Authorization: Bearer {{token}}

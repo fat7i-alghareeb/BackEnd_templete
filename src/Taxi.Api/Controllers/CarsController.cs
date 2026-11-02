@@ -15,6 +15,8 @@ using Taxi.Application.Features.Cars.Commands.UpdateCar;
 using Taxi.Application.Features.Cars.Commands.UploadCarImage;
 using Taxi.Application.Features.Cars.Dtos;
 using Taxi.Application.Features.Cars.Queries.GetCarById;
+using Taxi.Application.Features.Cars.Queries.GetCarDetails;
+using Taxi.Application.Features.Cars.Queries.GetCarDetailsById;
 using Taxi.Application.Features.Cars.Queries.GetCarImage;
 using Taxi.Application.Features.Cars.Queries.GetCars;
 using Taxi.Contracts.Common;
@@ -22,8 +24,15 @@ using Taxi.Contracts.Requests.Cars;
 
 namespace Taxi.Api.Controllers;
 
+/// <summary>
+/// The reference controller, also the versioning example ("interleaving"): one controller serves
+/// both versions. v1 is <b>deprecated</b> (clients see <c>api-deprecated-versions: 1</c> and a
+/// <c>Sunset</c> header). Writes and images are identical in both versions, so they map to both; the
+/// two reads changed shape in v2 (<see cref="CarDetailsDto"/>), so each version has its own action.
+/// </summary>
 [Route("api/v{version:apiVersion}/cars")]
-[ApiVersion("1.0")]
+[ApiVersion("1.0", Deprecated = true)]
+[ApiVersion("2.0")]
 [Authorize(Policy = Policies.CanReadCars)]
 public sealed class CarsController(ISender sender) : ApiController
 {
@@ -73,6 +82,7 @@ public sealed class CarsController(ISender sender) : ApiController
     [Idempotent]
     [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
+    [MapToApiVersion("2.0")]
     public async Task<IActionResult> CreateCar([FromBody] CreateCarRequest request, CancellationToken ct)
     {
         var result = await this.sender.Send(
@@ -97,6 +107,7 @@ public sealed class CarsController(ISender sender) : ApiController
     [EndpointName("UpdateCar")]
     [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
+    [MapToApiVersion("2.0")]
     public async Task<IActionResult> UpdateCar(Guid id, [FromBody] UpdateCarRequest request, CancellationToken ct)
     {
         var result = await this.sender.Send(
@@ -119,6 +130,7 @@ public sealed class CarsController(ISender sender) : ApiController
     [EndpointName("RemoveCar")]
     [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
+    [MapToApiVersion("2.0")]
     public async Task<IActionResult> RemoveCar(Guid id, CancellationToken ct)
     {
         var result = await this.sender.Send(new RemoveCarCommand(id), ct);
@@ -137,6 +149,7 @@ public sealed class CarsController(ISender sender) : ApiController
     [EndpointName("UploadCarImage")]
     [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
+    [MapToApiVersion("2.0")]
     public async Task<IActionResult> UploadCarImage(
         Guid id,
         [Required(ErrorMessage = LocalizationKeys.Validation.FileRequired)] IFormFile file,
@@ -153,6 +166,7 @@ public sealed class CarsController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [EndpointName("GetCarImage")]
     [MapToApiVersion("1.0")]
+    [MapToApiVersion("2.0")]
     public async Task<IActionResult> GetCarImage(Guid id, CancellationToken ct)
     {
         var result = await this.sender.Send(new GetCarImageQuery(id), ct);
@@ -166,9 +180,42 @@ public sealed class CarsController(ISender sender) : ApiController
     [EndpointName("RemoveCarImage")]
     [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
+    [MapToApiVersion("2.0")]
     public async Task<IActionResult> RemoveCarImage(Guid id, CancellationToken ct)
     {
         var result = await this.sender.Send(new RemoveCarImageCommand(id), ct);
         return result.Match(_ => this.NoContent(), this.Problem);
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(PaginatedList<CarDetailsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [EndpointName("GetCarsV2")]
+    [MapToApiVersion("2.0")]
+    public async Task<IActionResult> GetCarsV2([FromQuery] GetCarsRequest request, CancellationToken ct)
+    {
+        var result = await this.sender.Send(
+            new GetCarDetailsQuery(
+                request.Page,
+                request.PageSize,
+                request.Search,
+                request.Make,
+                request.Year,
+                request.SortBy,
+                request.SortDirection),
+            ct);
+
+        return result.Match(this.Ok, this.Problem);
+    }
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(CarDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointName("GetCarV2")]
+    [MapToApiVersion("2.0")]
+    public async Task<IActionResult> GetCarV2(Guid id, CancellationToken ct)
+    {
+        var result = await this.sender.Send(new GetCarDetailsByIdQuery(id), ct);
+        return result.Match(this.Ok, this.Problem);
     }
 }

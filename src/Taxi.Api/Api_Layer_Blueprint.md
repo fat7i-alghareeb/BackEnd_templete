@@ -157,7 +157,7 @@ The conventions, all mandatory:
 |---|---|
 | Class | `sealed`, primary constructor taking `ISender`, inherits `ApiController` |
 | Route | **literal** lowercase plural — `[Route("api/v{version:apiVersion}/cars")]`, not `[controller]` |
-| Version | `[ApiVersion("1.0")]` on the class, `[MapToApiVersion("1.0")]` on every action |
+| Version | `[ApiVersion("x.y")]` on the class for every version it serves, `[MapToApiVersion("x.y")]` on every action (one per version the action serves) |
 | Auth | `[Authorize(Policy = Policies.X)]` at class level for the read capability; a stricter policy per write action; `[AllowAnonymous]` per action where needed |
 | Naming | Action name = endpoint name = `[EndpointName("GetCar")]` |
 | Responses | One `[ProducesResponseType]` per reachable status; `typeof(ProblemDetails)` for failures |
@@ -407,7 +407,7 @@ is safe across async boundaries. Both are registered scoped in `AddIdentityInfra
 
 ## 8. OpenAPI
 
-Four transformers, registered per document in `AddApiDocumentation` (currently `["v1"]`):
+Four transformers, registered per document in `AddApiDocumentation` (`["v1", "v2"]`):
 
 | Transformer | Kind | Does |
 |---|---|---|
@@ -416,11 +416,32 @@ Four transformers, registered per document in `AddApiDocumentation` (currently `
 | `BearerSecurityOperationTransformer` | operation | Reads `ActionDescriptor.EndpointMetadata`; adds the security requirement **only** when `[Authorize]` is present without `[AllowAnonymous]` — so the padlock appears exactly on protected endpoints |
 | `AcceptLanguageOperationTransformer` | operation | Adds an `Accept-Language` header parameter with an enum of `Languages.All`, defaulting to `Languages.Default` |
 
-Development only: OpenAPI JSON at `/openapi/v1.json`, Swagger UI, and Scalar. Production gets
-`UseHsts()` instead.
+Development only: OpenAPI JSON at `/openapi/v1.json` and `/openapi/v2.json`, Swagger UI (both
+documents) and Scalar (`/scalar/v2`, `/scalar/v1`). Production gets `UseHsts()` instead.
 
-Adding a version means adding it to the `versions` array **and** to the controllers'
-`[ApiVersion]` / `[MapToApiVersion]` attributes.
+### Versioning: the v1 → v2 example
+
+`CarsController` serves both versions ("interleaving" — one controller, versions per action):
+
+| Action | v1 | v2 | Why |
+|---|---|---|---|
+| `GetCars`, `GetCar` | ✅ `CarDto` | — | description resolved to one language |
+| `GetCarsV2`, `GetCarV2` | — | ✅ `CarDetailsDto` | **breaking** shape change: description in both languages + timestamps |
+| create, update, delete, image | ✅ | ✅ | identical in both — two `[MapToApiVersion]` |
+
+- v1 is `[ApiVersion("1.0", Deprecated = true)]`: every v1 response carries
+  `api-deprecated-versions: 1.0`, and `options.Policies.Sunset(1.0)` adds `Sunset` and `Link`
+  headers with the retirement date (an example date in `AddCustomApiVersioning` — set your own).
+- Both lists share `CarQueryExtensions.ApplyFilters` / `ApplySort`, so versions cannot drift.
+- `CreatedAtAction(nameof(this.GetCar), new { version = this.RequestedApiVersion, … })` works for
+  both: link generation only fills the `{version}` segment, so a v2 POST answers
+  `Location: /api/v2/cars/{id}`, which routes to `GetCarV2`.
+- An unknown version (`/api/v3/...`) is a 404.
+
+To add a version: declare it on the controller, add `[MapToApiVersion]` to every action that is
+unchanged, write a new action only where the contract breaks, and add the document name to the
+`versions` array. To retire one: mark it `Deprecated = true`, add a sunset policy, and remove it
+after the date.
 
 ---
 

@@ -321,9 +321,10 @@ in the solution, returning `CarDto` directly is the reasonable status quo.
 
 ### 11.2 Contract versioning
 
-The API already versions by URL segment (`api/v{version:apiVersion}/...`) with
-`[MapToApiVersion("1.0")]` per action. If a **breaking** payload change is ever needed, split by
-namespace rather than bolting optional properties on:
+The API versions by URL segment (`api/v{version:apiVersion}/...`); `CarsController` serves a
+deprecated v1 and a v2 (see the Api blueprint §8). That v2 changed only a **response** shape, which
+lives in Application DTOs, so Contracts did not change. If a **request** ever needs a breaking
+change, split by namespace rather than bolting optional properties on:
 
 ```text
 src/Taxi.Contracts/
@@ -331,6 +332,4 @@ src/Taxi.Contracts/
 └── V2/Requests/Cars/CreateCarRequest.cs
 ```
 
-and register the second version in `AddApiDocumentation`'s `versions` array in
-`Taxi.Api/DependencyInjection.cs`, which is currently hard-coded to `["v1"]`. Only do this for a
-genuinely breaking change — additive optional fields do not need a new version.
+Only do this for a genuinely breaking change — additive optional fields do not need a new version.

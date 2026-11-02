@@ -455,7 +455,7 @@ outermost so no other behaviour's exception goes unlogged, and `ValidationBehavi
 
 ```powershell
 dotnet build Taxi_Server.slnx -c Debug      # must be clean; StyleCop runs here
-dotnet test Taxi_Server.slnx                # 178 tests today; the integration suite needs Docker
+dotnet test Taxi_Server.slnx                # 183 tests today; the integration suite needs Docker
 dotnet list package --vulnerable --include-transitive
 npx markdownlint-cli2                       # if you touched any .md
 docker compose up -d postgres
@@ -473,7 +473,8 @@ Then exercise the endpoints from `requests/requests.http`, or:
 6. Send an invalid payload → 400 `ValidationProblemDetails` keyed by the offending property, with
    the message translated into the requested language.
 
-OpenAPI in Development: `/openapi/v1.json`, Swagger UI at `/swagger`, Scalar at `/scalar/v1`.
+OpenAPI in Development: `/openapi/v2.json` and `/openapi/v1.json`, Swagger UI at `/swagger`,
+Scalar at `/scalar/v2`. v1 of the cars API is deprecated in favour of v2 — see the Api blueprint §8.
 
 `appsettings.json` ships with `ConnectionStrings:DefaultConnection` and `JwtSettings:Secret` blank;
 `appsettings.Development.json` carries working local values. For anything else, use user secrets,

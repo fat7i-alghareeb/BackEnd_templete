@@ -1,4 +1,5 @@
 using Taxi.Application.Common.Files;
+using Taxi.Application.Features.Cars.Dtos;
 using Taxi.Application.Features.Cars.Mappers;
 using Taxi.Application.UnitTests.TestDoubles;
 using Taxi.Contracts.Common;
@@ -49,6 +50,14 @@ public class CarMapperTests
         var cars = new[] { CarFactory.Create(model: "A"), CarFactory.Create(model: "B") };
 
         Assert.Equal(["A", "B"], cars.ToDto(Languages.Ar).Select(d => d.Model));
+    }
+
+    [Fact]
+    public void ToDetailsDto_KeepsBothLanguages()
+    {
+        var details = CarFactory.Create("Honda", "Civic").ToDetailsDto();
+
+        Assert.Equal(new LocalizedTextDto("Honda Civic en", "Honda Civic ar"), details.Description);
     }
 
     [Theory]

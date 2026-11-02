@@ -31,7 +31,7 @@ control over casing or hyphenation.
 
 | Resource | Route |
 |---|---|
-| Cars | `api/v{version:apiVersion}/cars` |
+| Cars | `api/v{version:apiVersion}/cars` — v1 (deprecated) and v2 |
 | Drivers | `api/v{version:apiVersion}/drivers` |
 | Users (administration) | `api/v{version:apiVersion}/users` |
 | Auth (version-neutral) | `api/token` |
