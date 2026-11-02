@@ -55,5 +55,8 @@
   "Validation.Token.Required": "Token is required.",
   "Validation.UserId.Required": "User id is required.",
   "Validation.Roles.Required": "At least one role is required.",
-  "Validation.Role.Invalid": "Unknown role. Allowed roles: Manager, User."
+  "Validation.Role.Invalid": "Unknown role. Allowed roles: Manager, User.",
+  "Idempotency.Key.Invalid": "The Idempotency-Key header must be 1 to 128 characters.",
+  "Idempotency.Key.Reused": "This Idempotency-Key was already used with a different request body.",
+  "Idempotency.InProgress": "A request with this Idempotency-Key is still being processed. Retry shortly."
 }

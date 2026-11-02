@@ -386,7 +386,9 @@ In order:
     `ConnectionStrings:Redis` is set, then `AddHybridCache` with a 10-minute default expiration and
     the 30-second L1 window from `CacheDefaults.LocalExpiration`. HybridCache picks up the
     registered `IDistributedCache` as its L2 automatically. Compose sets `redis:6379`; plain
-    `dotnet run` leaves it blank and caches in-process.
+    `dotnet run` leaves it blank and caches in-process. With Redis, a single `IConnectionMultiplexer`
+    (`AbortOnConnectFail = false`, so the API starts while Redis is still coming up) is shared by
+    the cache and `RedisDistributedLock`; without it `IDistributedLock` is `InMemoryDistributedLock`.
 11. `AddAppEmail` — binds `EmailSettings` (section `Email`, validated on start) and registers
     `IEmailSender`: `LoggingEmailSender` when `Email:Provider` is `Log` (the default — the message,
     including any one-time link, is written to the log), `SmtpEmailSender` (MailKit) when it is

@@ -55,5 +55,8 @@
   "Validation.Token.Required": "الرمز مطلوب.",
   "Validation.UserId.Required": "معرف المستخدم مطلوب.",
   "Validation.Roles.Required": "دور واحد على الأقل مطلوب.",
-  "Validation.Role.Invalid": "دور غير معروف. الأدوار المسموح بها: Manager و User."
+  "Validation.Role.Invalid": "دور غير معروف. الأدوار المسموح بها: Manager و User.",
+  "Idempotency.Key.Invalid": "يجب أن يكون طول ترويسة Idempotency-Key بين 1 و 128 حرفًا.",
+  "Idempotency.Key.Reused": "تم استخدام مفتاح Idempotency-Key هذا مسبقًا مع طلب مختلف.",
+  "Idempotency.InProgress": "لا يزال طلب بهذا المفتاح Idempotency-Key قيد المعالجة. أعد المحاولة بعد قليل."
 }

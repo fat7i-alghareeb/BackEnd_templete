@@ -50,6 +50,13 @@ public static class LocalizationKeys
         public const string Conflict = "Concurrency.Conflict";
     }
 
+    public static class Idempotency
+    {
+        public const string KeyInvalid = "Idempotency.Key.Invalid";
+        public const string KeyReused = "Idempotency.Key.Reused";
+        public const string InProgress = "Idempotency.InProgress";
+    }
+
     public static class RateLimit
     {
         public const string Exceeded = "RateLimit.Exceeded";

@@ -5,10 +5,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+
+using StackExchange.Redis;
 
 using Taxi.Application.Common.Caching;
 using Taxi.Application.Common.Interfaces;
@@ -18,6 +21,7 @@ using Taxi.Infrastructure.Data.Interceptors;
 using Taxi.Infrastructure.Email;
 using Taxi.Infrastructure.HealthChecks;
 using Taxi.Infrastructure.Identity;
+using Taxi.Infrastructure.Locking;
 using Taxi.Infrastructure.Settings;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -151,11 +155,25 @@ public static class DependencyInjection
 
         if (!string.IsNullOrWhiteSpace(redisConnectionString))
         {
-            services.AddStackExchangeRedisCache(options =>
-            {
-                options.Configuration = redisConnectionString;
-                options.InstanceName = "taxi:";
-            });
+            // One multiplexer for the cache and the distributed lock. AbortOnConnectFail=false lets
+            // the API start while Redis is still coming up; it reconnects in the background and
+            // /health/ready reports the outage meanwhile.
+            var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
+            redisOptions.AbortOnConnectFail = false;
+
+            services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
+
+            services.AddStackExchangeRedisCache(options => options.InstanceName = "taxi:");
+            services.AddOptions<RedisCacheOptions>()
+                .Configure<IServiceProvider>((options, sp) =>
+                    options.ConnectionMultiplexerFactory = () =>
+                        Task.FromResult(sp.GetRequiredService<IConnectionMultiplexer>()));
+
+            services.AddSingleton<IDistributedLock, RedisDistributedLock>();
+        }
+        else
+        {
+            services.AddSingleton<IDistributedLock, InMemoryDistributedLock>();
         }
 
         services.AddHybridCache(options => options.DefaultEntryOptions = new HybridCacheEntryOptions

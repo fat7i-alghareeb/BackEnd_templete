@@ -164,6 +164,21 @@ Accept-Language: {{lang}}
 
 @carId = {{createCar.response.body.id}}
 
+### 2c-2. Idempotent create: run twice — one car, the second answer has Idempotency-Replayed: true.
+### Same key with a different body → 422; while the first is still running → 409.
+POST {{baseUrl}}/api/v1/cars
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: 6f1c2d4e-demo-key-0001
+
+{
+  "make": "Volkswagen",
+  "model": "Golf",
+  "year": 2023,
+  "descriptionEn": "Created once, however often you retry.",
+  "descriptionAr": "تُنشأ مرة واحدة مهما أعدت المحاولة."
+}
+
 ### 2d. Get one car (cached: GetCarByIdQuery). Run twice — the second hit should not query the DB.
 GET {{baseUrl}}/api/v1/cars/{{carId}}
 Authorization: Bearer {{token}}

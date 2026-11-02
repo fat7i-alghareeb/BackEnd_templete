@@ -172,7 +172,7 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 | ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/users/{userId}/roles` | 🔒 Manager | Replace a user's roles |
 | ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars` | 🔒 | List cars — paged, filtered, sorted (cached per language) |
 | ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars/{id}` | 🔒 | One car (cached per language) |
-| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/v1/cars` | 🔒 Manager | Create a car |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/v1/cars` | 🔒 Manager | Create a car; send `Idempotency-Key` to make retries safe |
 | ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/cars/{id}` | 🔒 Manager | Update a car |
 | ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/cars/{id}` | 🔒 Manager | Soft-delete a car |
 

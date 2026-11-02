@@ -199,6 +199,26 @@ reachable unauthenticated, and the fallback policy would otherwise reject them â
 | `CanManageCars` | `Manager` |
 | `CanManageUsers` | `Manager` |
 
+### Idempotent POSTs
+
+`[Idempotent]` (`Infrastructure/Idempotency/`) on an action makes it safe to retry. It is on
+`CreateCar`; put it on any `POST` that creates something.
+
+| Request | Response |
+|---|---|
+| no `Idempotency-Key` header | runs normally |
+| new key | runs once under an `IDistributedLock` on the key; a 2xx response is stored 24 h |
+| same key + same body, finished | stored status, body and `Location` replayed, plus `Idempotency-Replayed: true` |
+| same key + different body | **422** |
+| same key while the first is still running | **409** â€” retry shortly |
+| key empty or longer than 128 chars | **400** |
+
+The key is scoped to user + method + path. Non-2xx responses are not stored, so a failed request
+can be retried with the same key. With Redis configured, both the stored responses (HybridCache L2)
+and the lock (`RedisDistributedLock`: atomic `SET NX` + owner-checked release) span instances;
+without it they are per process. Verified with ten concurrent requests split across two instances:
+exactly one row is created.
+
 ### `AccountController` and `UsersController`
 
 `AccountController` (`api/account`, version-neutral) is self-service: `register`, `confirm-email`,

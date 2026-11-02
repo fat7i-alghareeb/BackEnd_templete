@@ -2,6 +2,7 @@ using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Taxi.Api.Infrastructure.Idempotency;
 using Taxi.Application.Common.Models;
 using Taxi.Application.Common.Security;
 using Taxi.Application.Features.Cars.Commands.CreateCar;
@@ -54,7 +55,10 @@ public sealed class CarsController(ISender sender) : ApiController
     [ProducesResponseType(typeof(CarDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [EndpointName("CreateCar")]
+    [Idempotent]
     [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> CreateCar([FromBody] CreateCarRequest request, CancellationToken ct)
