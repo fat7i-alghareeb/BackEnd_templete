@@ -94,7 +94,7 @@ public async Task<IActionResult> GetCar(Guid id, CancellationToken ct)
 git clone https://github.com/fat7i-alghareeb/BackEnd_templete.git
 cd BackEnd_templete
 
-# 2. Start PostgreSQL, Seq, Prometheus and Grafana
+# 2. Start PostgreSQL, Redis, Seq, Prometheus and Grafana (plus Mailpit for dev email)
 docker compose up -d
 
 # 3. Run the API (migrations and seed data are applied on startup)
@@ -155,6 +155,22 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 > this repository. Anyone reading the repo can forge tokens signed with that secret. Override
 > `JwtSettings:Secret` and change the admin password before running anywhere other than your own
 > machine.
+
+### Make it yours
+
+The template is called **Taxi**. Rename it once, on a fresh clone, before your first commit
+(needs [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell)
+— `pwsh` — on Windows, macOS or Linux):
+
+```bash
+pwsh ./rename.ps1 -Name Acme -WhatIf   # preview
+pwsh ./rename.ps1 -Name Acme           # Taxi → Acme everywhere
+```
+
+It rewrites file contents (`Taxi`/`taxi`/`TAXI`, so namespaces, the solution, compose services, the
+database name, JWT issuer and docs all follow), renames every `Taxi.*` project, folder and file,
+gives the project a fresh `UserSecretsId`, and re-sorts `using` directives so the strict CI build
+stays clean. It refuses to run on a dirty git tree unless you pass `-Force`.
 
 ## 🌐 API surface
 

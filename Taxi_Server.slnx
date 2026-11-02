@@ -15,6 +15,7 @@
     <File Path="docker-compose.yml" />
     <File Path="README.md" />
     <File Path="LICENSE" />
+    <File Path="rename.ps1" />
     <File Path="AGENTS.md" />
   </Folder>
   <Folder Name="/src/">
