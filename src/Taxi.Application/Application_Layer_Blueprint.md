@@ -485,7 +485,8 @@ Application layer states the need; whichever host is running supplies it.
 
 ### 12.1 Authorization behaviour
 
-Today authorization is `[Authorize]` on controllers. If a rule ever needs to live with the use
+Today authorization is named policies (`Common/Security/Policies.cs`) applied with
+`[Authorize(Policy = ...)]` on controllers. If a rule ever needs to live with the use
 case rather than the endpoint (for example "only the owning driver may cancel this ride"), add a
 behaviour rather than scattering checks through handlers.
 

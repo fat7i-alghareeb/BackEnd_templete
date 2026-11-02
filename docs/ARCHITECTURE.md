@@ -260,7 +260,8 @@ share one context and one transaction.
 - Auth is JWT bearer, HMAC-SHA256, configured from the typed, start-validated `JwtSettings`
   options. `TokenProvider` issues the access token and rotates the refresh token (deletes the
   user's existing rows, inserts a new one living `RefreshTokenExpirationInDays`, default 7).
-  Authorization is `[Authorize]` on controllers/actions; `IIdentityService` wraps `UserManager`
+  Authorization is named policies (`Policies.*`, mapped to `Roles.*` in `AddAppAuthorization`)
+  behind a fallback that requires an authenticated user; `IIdentityService` wraps `UserManager`
   so the Application layer never sees ASP.NET Identity types.
 
 ---

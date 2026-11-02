@@ -23,6 +23,7 @@ public sealed class IdentityController(ISender sender, IUser currentUser) : ApiC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     [EndpointName("GenerateToken")]
+    [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Auth)]
     public async Task<IActionResult> GenerateToken([FromBody] GenerateTokenRequest request, CancellationToken ct)
     {
@@ -35,6 +36,7 @@ public sealed class IdentityController(ISender sender, IUser currentUser) : ApiC
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     [EndpointName("RefreshToken")]
+    [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Auth)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken ct)
     {

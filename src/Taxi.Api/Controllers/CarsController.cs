@@ -2,6 +2,7 @@ using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Taxi.Application.Common.Security;
 using Taxi.Application.Features.Cars.Commands.CreateCar;
 using Taxi.Application.Features.Cars.Commands.RemoveCar;
 using Taxi.Application.Features.Cars.Commands.UpdateCar;
@@ -14,7 +15,7 @@ namespace Taxi.Api.Controllers;
 
 [Route("api/v{version:apiVersion}/cars")]
 [ApiVersion("1.0")]
-[Authorize]
+[Authorize(Policy = Policies.CanReadCars)]
 public sealed class CarsController(ISender sender) : ApiController
 {
     [HttpGet]
@@ -41,7 +42,9 @@ public sealed class CarsController(ISender sender) : ApiController
     [HttpPost]
     [ProducesResponseType(typeof(CarDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [EndpointName("CreateCar")]
+    [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> CreateCar([FromBody] CreateCarRequest request, CancellationToken ct)
     {
@@ -63,7 +66,9 @@ public sealed class CarsController(ISender sender) : ApiController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [EndpointName("UpdateCar")]
+    [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> UpdateCar(Guid id, [FromBody] UpdateCarRequest request, CancellationToken ct)
     {
@@ -88,7 +93,9 @@ public sealed class CarsController(ISender sender) : ApiController
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [EndpointName("RemoveCar")]
+    [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> RemoveCar(Guid id, CancellationToken ct)
     {

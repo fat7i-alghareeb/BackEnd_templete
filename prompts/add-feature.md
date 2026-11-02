@@ -30,7 +30,7 @@ Show me `dotnet build` and `dotnet test` output when you are done.
 | Which fields are bilingual | `LocalizedText` + `OwnsOne(...).ToJson()` (one JSONB column) versus a plain `string`. Getting this wrong means a migration to undo it. |
 | Invariants | Become guards inside `Create`/`Update` **and** entries in `<Entity>Errors` **and** keys in both `SharedResource` files |
 | Cached? | Forces a `CacheTags` constant *and* a `RemoveByTagAsync` call in every command that mutates the data. A cached query with no invalidator is a bug. |
-| Auth | `[Authorize]` on the controller class, or `[AllowAnonymous]` per action |
+| Auth | Which **policy** reads and which writes — add constants to `Policies` and map them to roles in `AddAppAuthorization`; `[AllowAnonymous]` only when justified |
 | Delete semantics | `Car` has no `Delete()` — removal is `context.Cars.Remove(car)`. Add a domain method only if deletion carries a rule. |
 | Child collections | A localized **child collection** hits an EF limit: `OwnsMany` + `ToJson` is unsupported. Say so up front. |
 

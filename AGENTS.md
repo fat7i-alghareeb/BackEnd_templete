@@ -131,7 +131,12 @@ Tests live in `tests/Taxi.Domain.UnitTests` and `tests/Taxi.Application.UnitTest
   state, no logging, no data access.
 - **MUST** bind a **Contracts** request type and map it to the command by hand. Never bind an
   Application command straight from `[FromBody]`.
-- **MUST** inherit from `ApiController`, which supplies `Problem(List<Error>)`.
+- **MUST** inherit from `ApiController`, which supplies `Problem(List<Error>)` and the default
+  rate-limit policy.
+- **MUST** protect endpoints with a named policy — `[Authorize(Policy = Policies.X)]` from
+  `Application/Common/Security/Policies.cs` — never `[Authorize(Roles = "...")]`. Map the policy to
+  roles in `AddAppAuthorization`. A fallback policy requires an authenticated user, so anything
+  anonymous must say `[AllowAnonymous]` explicitly.
 - **NEVER** inject `AppDbContext`, `UserManager<AppUser>`, or any Infrastructure type into a
   controller.
 - **NEVER** write a `try/catch` in a controller.

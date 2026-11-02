@@ -131,10 +131,12 @@ Note the deliberate asymmetry: the HTTP action for delete is `RemoveCar`, matchi
 
 ## 6. Authorization
 
-- `[Authorize]` sits on the **controller**, not on each action — secure by default, opt out
+- A fallback policy requires an authenticated user on every endpoint — secure by default, opt out
   per-action with `[AllowAnonymous]`.
-- `IdentityController` has no class-level `[Authorize]`; only `GetUserInfo` carries one, since
-  token issuance must be reachable unauthenticated.
+- Capabilities are **named policies** (`Policies.CanReadCars`, `Policies.CanManageCars`), never
+  role names. The read policy sits on the **controller**; write actions add the stricter one.
+- `IdentityController`'s `GenerateToken` and `RefreshToken` carry `[AllowAnonymous]`, since token
+  issuance must be reachable unauthenticated.
 - `BearerSecurityOperationTransformer` reads this metadata and renders the padlock in OpenAPI on
   exactly the protected endpoints. Getting the attributes right is what makes the generated docs
   accurate.

@@ -35,7 +35,7 @@ app.UseForwardedHeaders();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
 
     app.UseSwaggerUI(options =>
     {
@@ -45,7 +45,7 @@ if (app.Environment.IsDevelopment())
         options.EnableFilter();
     });
 
-    app.MapScalarApiReference();
+    app.MapScalarApiReference().AllowAnonymous();
 }
 else
 {
@@ -56,7 +56,7 @@ app.UseCoreMiddlewares(builder.Configuration);
 
 // Scraped by the prometheus service at /metrics (see containers/prometheus/prometheus.yml).
 // Intentionally unauthenticated: it is only reachable on the published container port.
-app.MapPrometheusScrapingEndpoint();
+app.MapPrometheusScrapingEndpoint().AllowAnonymous();
 
 app.MapControllers();
 

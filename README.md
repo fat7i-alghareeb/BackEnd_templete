@@ -216,7 +216,8 @@ sequenceDiagram
 
 - **Access token:** JWT signed with HMAC-SHA256, carrying the user id and `role` claims.
 - **Refresh token:** stored in the database, one live token per user, rotated on every refresh.
-- **RBAC:** controllers use `[Authorize]`; roles from ASP.NET Identity are ready for `[Authorize(Roles = "...")]`.
+- **RBAC:** `Manager` and `User` roles; endpoints use named policies (`CanReadCars`,
+  `CanManageCars`) behind a fallback policy that requires authentication everywhere.
 - **Hardening:** CORS policy from config, forwarded-headers settings, and per-user / per-IP rate limiting with a stricter policy on the credential endpoints.
 
 ## 🌍 Localization

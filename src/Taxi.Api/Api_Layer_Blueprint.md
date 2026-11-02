@@ -120,7 +120,7 @@ validation, `[FromBody]` inference). No localizer plumbing, no per-controller tr
 ```csharp
 [Route("api/v{version:apiVersion}/cars")]
 [ApiVersion("1.0")]
-[Authorize]
+[Authorize(Policy = Policies.CanReadCars)]
 public sealed class CarsController(ISender sender) : ApiController
 {
     [HttpGet]
@@ -137,6 +137,7 @@ public sealed class CarsController(ISender sender) : ApiController
     [ProducesResponseType(typeof(CarDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [EndpointName("CreateCar")]
+    [Authorize(Policy = Policies.CanManageCars)]
     [MapToApiVersion("1.0")]
     public async Task<IActionResult> CreateCar([FromBody] CreateCarRequest request, CancellationToken ct)
     {
@@ -159,7 +160,7 @@ The conventions, all mandatory:
 | Class | `sealed`, primary constructor taking `ISender`, inherits `ApiController` |
 | Route | **literal** lowercase plural — `[Route("api/v{version:apiVersion}/cars")]`, not `[controller]` |
 | Version | `[ApiVersion("1.0")]` on the class, `[MapToApiVersion("1.0")]` on every action |
-| Auth | `[Authorize]` at class level; `[AllowAnonymous]` per action where needed |
+| Auth | `[Authorize(Policy = Policies.X)]` at class level for the read capability; a stricter policy per write action; `[AllowAnonymous]` per action where needed |
 | Naming | Action name = endpoint name = `[EndpointName("GetCar")]` |
 | Responses | One `[ProducesResponseType]` per reachable status; `typeof(ProblemDetails)` for failures |
 | Cancellation | Every action takes `CancellationToken ct` and forwards it |
@@ -187,8 +188,27 @@ versioning scheme on purpose, since a client that cannot obtain a token cannot n
 
 Otherwise it follows `CarsController` exactly: `GenerateTokenRequest` / `RefreshTokenRequest` come
 from `Taxi.Contracts`, are mapped to `GenerateTokenCommand` / `RefreshTokenCommand` by hand, and
-the result is matched. Only `GetUserInfo` carries `[Authorize]`; the other two must be reachable
-unauthenticated.
+the result is matched. `GenerateToken` and `RefreshToken` carry `[AllowAnonymous]` — they must be
+reachable unauthenticated, and the fallback policy would otherwise reject them — plus the stricter
+`RateLimitPolicies.Auth` limiter.
+
+### Authorization model
+
+| Piece | Where |
+|---|---|
+| Role names | `Taxi.Application/Common/Security/Roles.cs` — `Manager`, `User`; all seeded on startup |
+| Policy names | `Taxi.Application/Common/Security/Policies.cs` |
+| Policy → role mapping | `AddAppAuthorization` in `Taxi.Api/DependencyInjection.cs` |
+| Fallback | `RequireAuthenticatedUser()` — an endpoint with no auth metadata is **not** public |
+
+| Policy | Roles |
+|---|---|
+| `CanReadCars` | `Manager`, `User` |
+| `CanManageCars` | `Manager` |
+
+Endpoints reference policies, never roles, so granting a capability to another role is a one-line
+change in `AddAppAuthorization`. Infrastructure endpoints mapped in `Program.cs` (`/openapi`,
+`/scalar`, `/metrics`) call `.AllowAnonymous()` explicitly because of the fallback.
 
 ---
 

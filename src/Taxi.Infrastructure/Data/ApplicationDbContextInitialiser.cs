@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Taxi.Application.Common.Security;
 using Taxi.Domain.Cars;
 using Taxi.Infrastructure.Identity;
 using Taxi.Infrastructure.Settings;
@@ -64,13 +65,16 @@ public class ApplicationDbContextInitialiser(
     private async Task TrySeedAsync()
     {
         // 1. Roles — not secret, always present so role checks never reference a missing role.
-        if (!await this.roleManager.RoleExistsAsync("Manager"))
+        foreach (var role in Roles.All)
         {
-            EnsureSucceeded(await this.roleManager.CreateAsync(new IdentityRole("Manager")), "create role Manager");
+            if (!await this.roleManager.RoleExistsAsync(role))
+            {
+                EnsureSucceeded(await this.roleManager.CreateAsync(new IdentityRole(role)), $"create role {role}");
+            }
         }
 
         // 2. Bootstrap admin — only when Seed:Admin:Email and Seed:Admin:Password are configured.
-        await this.SeedUserAsync(this.seedSettings.Admin, "Manager");
+        await this.SeedUserAsync(this.seedSettings.Admin, Roles.Manager);
 
         // 3. Sample data — opt-in, so a fresh staging or production database starts empty.
         if (this.seedSettings.SampleData && !await this.context.Cars.AnyAsync())

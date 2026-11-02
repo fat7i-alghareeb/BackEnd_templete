@@ -96,7 +96,7 @@ Business failures are values, not exceptions. `Result<T>` turns into a 2xx or an
 ### 🔐 JWT + refresh + RBAC
 
 HMAC-SHA256 access tokens, rotating refresh tokens (one live per user, 7 days), and role claims
-ready for `[Authorize]`.
+behind named policies (`CanReadCars`, `CanManageCars`).
 
 </td>
 <td valign="top">
@@ -388,7 +388,7 @@ stateDiagram-v2
 |:--|:--|
 | **Access token** | JWT, HMAC-SHA256, lifetime from `JwtSettings:TokenExpirationInMinutes` (60 by default) |
 | **Refresh token** | stored in the database, **one live token per user**, 7-day expiry, rotated on every refresh |
-| **Roles (RBAC)** | ASP.NET Identity roles are written into the JWT as `role` claims, ready for `[Authorize(Roles = "...")]` |
+| **Roles (RBAC)** | `Manager` and `User` roles are written into the JWT as `role` claims; endpoints require named policies (`Policies.*`) mapped to roles in one place |
 | **Current user** | `IUser` gives handlers the user id; the id never comes from a request body |
 | **Seed** | first run creates the roles; Development also seeds `admin@taxi.com` / `Admin123!` from `Seed:Admin` — other environments only when configured |
 

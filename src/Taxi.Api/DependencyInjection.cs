@@ -26,6 +26,7 @@ using Taxi.Api.Infrastructure.RateLimiting;
 using Taxi.Api.OpenApi.Transformers;
 using Taxi.Api.Services;
 using Taxi.Application.Common.Interfaces;
+using Taxi.Application.Common.Security;
 using Taxi.Contracts.Common;
 using Taxi.Infrastructure.Data;
 using Taxi.Infrastructure.Settings;
@@ -42,6 +43,7 @@ public static class DependencyInjection
                 .AddControllerWithJsonConfiguration()
                 .AddValidation()
                 .AddIdentityInfrastructure()
+                .AddAppAuthorization()
                 .AddAppLocalization()
                 .AddConfiguredCors(configuration)
                 .AddAppRateLimiting()
@@ -325,6 +327,22 @@ public static class DependencyInjection
         services.AddScoped<ILanguageContext, LanguageContext>();
         services.AddScoped<IUser, CurrentUser>();
         services.AddHttpContextAccessor();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Maps every policy in <see cref="Policies"/> to the roles that hold it, and sets a fallback
+    /// policy so an endpoint without any <c>[Authorize]</c> / <c>[AllowAnonymous]</c> metadata
+    /// requires an authenticated user instead of being silently public.
+    /// </summary>
+    /// <returns>The service collection, for chaining.</returns>
+    public static IServiceCollection AddAppAuthorization(this IServiceCollection services)
+    {
+        services.AddAuthorizationBuilder()
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddPolicy(Policies.CanReadCars, policy => policy.RequireRole(Roles.Manager, Roles.User))
+            .AddPolicy(Policies.CanManageCars, policy => policy.RequireRole(Roles.Manager));
 
         return services;
     }
