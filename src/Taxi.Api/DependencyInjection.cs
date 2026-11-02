@@ -305,30 +305,34 @@ public static class DependencyInjection
                 var logger = sp.GetRequiredService<ILogger<SharedResource>>();
                 var env = sp.GetRequiredService<IHostEnvironment>();
 
+                // Only entries that failed: ModelState also holds every valid bound value (e.g. a
+                // route id), which would otherwise appear in the response as "userId": [].
                 var problemDetails = new ValidationProblemDetails(
-                    context.ModelState.ToDictionary(
-                        kvp => kvp.Key,
-                        kvp => kvp.Value!.Errors
-                            .Select(error =>
-                            {
-                                var key = error.ErrorMessage;
-                                var localized = localizer[key];
-                                if (!localized.ResourceNotFound)
+                    context.ModelState
+                        .Where(kvp => kvp.Value is { Errors.Count: > 0 })
+                        .ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => kvp.Value!.Errors
+                                .Select(error =>
                                 {
-                                    return localized.Value;
-                                }
+                                    var key = error.ErrorMessage;
+                                    var localized = localizer[key];
+                                    if (!localized.ResourceNotFound)
+                                    {
+                                        return localized.Value;
+                                    }
 
-                                if (env.IsDevelopment())
-                                {
-                                    logger.LogWarning(
-                                        "Missing localization key '{Key}' for culture '{Culture}'",
-                                        key,
-                                        CultureInfo.CurrentUICulture.Name);
-                                }
+                                    if (env.IsDevelopment())
+                                    {
+                                        logger.LogWarning(
+                                            "Missing localization key '{Key}' for culture '{Culture}'",
+                                            key,
+                                            CultureInfo.CurrentUICulture.Name);
+                                    }
 
-                                return key;
-                            })
-                            .ToArray()))
+                                    return key;
+                                })
+                                .ToArray()))
                 {
                     Status = StatusCodes.Status400BadRequest,
                 };
