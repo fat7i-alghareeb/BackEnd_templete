@@ -75,7 +75,9 @@ codes, and Contracts is the only project the Domain, the API and the Client can 
 
 **Never** add a reference that reverses one of these arrows.
 
-Tests live in `tests/Taxi.Domain.UnitTests` and `tests/Taxi.Application.UnitTests`.
+Tests live in `tests/Taxi.Domain.UnitTests`, `tests/Taxi.Application.UnitTests` (handlers,
+validators, mappers, behaviours) and `tests/Taxi.ArchitectureTests`, which **fails the build if a
+type breaks one of these arrows** or the conventions in §2 (NetArchTest).
 
 ---
 

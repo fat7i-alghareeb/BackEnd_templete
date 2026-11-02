@@ -25,6 +25,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Taxi.Application.UnitTests/Taxi.Application.UnitTests.csproj" />
+    <Project Path="tests/Taxi.ArchitectureTests/Taxi.ArchitectureTests.csproj" />
     <Project Path="tests/Taxi.Domain.UnitTests/Taxi.Domain.UnitTests.csproj" />
   </Folder>
 </Solution>
