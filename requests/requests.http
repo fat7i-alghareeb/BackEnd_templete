@@ -199,6 +199,14 @@ Content-Type: application/json
 }
 
 ### ---------------------------------------------------------------------------
-### 4. Documentation endpoints (Development only)
+### 4. Health probes (anonymous, every environment) — 200 healthy / 503 unhealthy
+
+GET {{baseUrl}}/health/live
+
+###
+GET {{baseUrl}}/health/ready
+
+### ---------------------------------------------------------------------------
+### 5. Documentation endpoints (Development only)
 
 GET {{baseUrl}}/openapi/v1.json

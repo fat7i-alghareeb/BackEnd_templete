@@ -96,6 +96,7 @@ rejected alternative are in
 | Metrics | Same instrumentation, exposed at `/metrics` and scraped by Prometheus |
 | Logs | Serilog → Console, rolling file, and Seq |
 | Dashboards | Grafana over Prometheus |
+| Health | `/health/live` (process up) and `/health/ready` (PostgreSQL + Redis, 5 s timeout each) |
 
 All four are provisioned by `docker-compose` and wired in `AddObservability()`.
 

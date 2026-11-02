@@ -2,6 +2,7 @@ using Scalar.AspNetCore;
 
 using Serilog;
 
+using Taxi.Api.Infrastructure.HealthChecks;
 using Taxi.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -57,6 +58,8 @@ app.UseCoreMiddlewares(builder.Configuration);
 // Scraped by the prometheus service at /metrics (see containers/prometheus/prometheus.yml).
 // Intentionally unauthenticated: it is only reachable on the published container port.
 app.MapPrometheusScrapingEndpoint().AllowAnonymous();
+
+app.MapAppHealthChecks();
 
 app.MapControllers();
 

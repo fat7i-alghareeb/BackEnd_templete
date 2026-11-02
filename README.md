@@ -109,6 +109,9 @@ In Development, the API docs are served at:
 | 🧭 Swagger UI | `/swagger` |
 | ✨ Scalar | `/scalar/v1` |
 
+In every environment, `/health/live` (process is up) and `/health/ready` (PostgreSQL and Redis
+reachable) answer 200 or 503 without authentication.
+
 Sample calls are in [requests/requests.http](requests/requests.http). In Development, sign in
 with the seeded `admin@taxi.com` / `Admin123!` account (role `Manager`), or `user@taxi.com` /
 `User123!` (role `User`, read-only — writes return 403). Those credentials come from `Seed:Admin`

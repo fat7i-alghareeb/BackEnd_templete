@@ -200,7 +200,7 @@ reachable unauthenticated, and the fallback policy would otherwise reject them �
 
 Endpoints reference policies, never roles, so granting a capability to another role is a one-line
 change in `AddAppAuthorization`. Infrastructure endpoints mapped in `Program.cs` (`/openapi`,
-`/scalar`, `/metrics`) call `.AllowAnonymous()` explicitly because of the fallback.
+`/scalar`, `/metrics`, `/health/*`) call `.AllowAnonymous()` explicitly because of the fallback.
 
 ---
 
@@ -389,7 +389,14 @@ Wired in `AddObservability()` and consumed by services `docker-compose` already 
 | Traces | `AddAspNetCoreInstrumentation` + `AddHttpClientInstrumentation`, OTLP exporter | Seq, via `OTEL_EXPORTER_OTLP_ENDPOINT` |
 | Metrics | Same instrumentation, Prometheus exporter | `/metrics`, scraped by Prometheus, graphed in Grafana |
 | Logs | Serilog | Console, rolling file, and Seq |
+| Health | `MapAppHealthChecks()` | `/health/live` (no checks) and `/health/ready` (PostgreSQL, Redis) |
 
+- **Health probes.** `/health/live` runs no checks — it only proves the process answers, so a
+  database outage never gets a healthy container restarted. `/health/ready` runs every check tagged
+  `HealthCheckTags.Ready` (registered in `AddAppHealthChecks` in Infrastructure: `AppDbContext`
+  connectivity, plus Redis when `ConnectionStrings:Redis` is set), each capped at 5 s. Both are
+  anonymous, outside rate limiting, return 200/503 and a small JSON report without exception
+  details.
 - The OTLP exporter is configured **entirely by environment variables**
   (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL`), which `docker-compose.override.yml`
   sets. Running outside compose without them simply produces no exported traces — it does not fail.

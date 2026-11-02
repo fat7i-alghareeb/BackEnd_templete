@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -13,6 +14,7 @@ using Taxi.Application.Common.Caching;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Infrastructure.Data;
 using Taxi.Infrastructure.Data.Interceptors;
+using Taxi.Infrastructure.HealthChecks;
 using Taxi.Infrastructure.Identity;
 using Taxi.Infrastructure.Settings;
 
@@ -108,6 +110,8 @@ public static class DependencyInjection
 
         services.AddAppCaching(configuration);
 
+        services.AddAppHealthChecks(configuration);
+
         return services;
     }
 
@@ -139,6 +143,35 @@ public static class DependencyInjection
         {
             Expiration = TimeSpan.FromMinutes(10),
             LocalCacheExpiration = CacheDefaults.LocalExpiration,
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Readiness checks, all tagged <see cref="HealthCheckTags.Ready"/>: PostgreSQL through
+    /// <see cref="AppDbContext"/> (<c>CanConnectAsync</c>), and Redis when it is configured.
+    /// The API maps them to <c>/health/ready</c>; <c>/health/live</c> runs none of them.
+    /// </summary>
+    /// <returns>The service collection, for chaining.</returns>
+    public static IServiceCollection AddAppHealthChecks(this IServiceCollection services, IConfiguration configuration)
+    {
+        var checks = services.AddHealthChecks()
+            .AddDbContextCheck<AppDbContext>("postgres", tags: [HealthCheckTags.Ready]);
+
+        if (!string.IsNullOrWhiteSpace(configuration.GetConnectionString("Redis")))
+        {
+            checks.AddCheck<DistributedCacheHealthCheck>("redis", tags: [HealthCheckTags.Ready]);
+        }
+
+        // A probe must answer quickly. Without a timeout the PostgreSQL check inherits the
+        // DbContext's EnableRetryOnFailure policy and takes ~20 s to report a database outage.
+        services.Configure<HealthCheckServiceOptions>(options =>
+        {
+            foreach (var registration in options.Registrations)
+            {
+                registration.Timeout = TimeSpan.FromSeconds(5);
+            }
         });
 
         return services;
