@@ -40,7 +40,7 @@
 | 🔐 | **JWT + refresh tokens + RBAC** | HMAC-SHA256 access tokens, rotating refresh tokens (one live per user), role claims |
 | 🌍 | **English / Arabic** | Localized error and validation messages, bilingual fields stored as JSONB, chosen by `Accept-Language` |
 | 🐘 | **PostgreSQL + EF Core 10** | Migrations with retry, audit stamping, domain event dispatch |
-| 🚀 | **HybridCache** | Opt-in query caching, split by language, cleared by tags |
+| 🚀 | **HybridCache + Redis** | Opt-in query caching, split by language, cleared by tags; Redis L2 shares it across instances |
 | 📈 | **Observability** | Serilog, OpenTelemetry, Seq, Prometheus and Grafana, all started by Docker Compose |
 | 🧪 | **Tests + CI** | xUnit suites, StyleCop on every build, GitHub Actions build and test |
 | 📚 | **Docs + workflow** | Per-layer blueprints, REST naming rules, a 17-step feature recipe, AI prompt templates |
@@ -136,6 +136,7 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 |:--|:--|:--|
 | `Database:ApplyMigrationsOnStartup` | `true` outside Production | apply migrations and seed on startup, with 5 retries |
 | `Database:ResetOnStartup` | `false` | drop and recreate the database (Development only) |
+| `ConnectionStrings:Redis` | *(blank)* | HybridCache L2; blank = in-process cache only (single instance) |
 | `JwtSettings:Secret` | *(blank)* | HMAC key; the host refuses to start unless it is at least 32 characters |
 | `JwtSettings:TokenExpirationInMinutes` | `60` | access token lifetime (1–1440) |
 | `JwtSettings:RefreshTokenExpirationInDays` | `7` | refresh token lifetime (1–365) |

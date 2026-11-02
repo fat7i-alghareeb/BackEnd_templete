@@ -457,7 +457,8 @@ flowchart LR
 - **Split by language**: culture-aware keys become `{CacheKey}_{language}`, so Arabic and English never mix.
 - **Only successes are cached.** Validation runs first, so bad input never reaches the cache.
 - **Invalidation by tag**: every command that changes cached data calls `RemoveByTagAsync`.
-- **HybridCache defaults**: 10-minute expiration, 30-second in-memory window.
+- **HybridCache defaults**: 10-minute expiration, 30-second in-memory window, Redis L2 when
+  `ConnectionStrings:Redis` is set (compose does).
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 

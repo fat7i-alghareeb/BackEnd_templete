@@ -322,12 +322,26 @@ public interface ICachedQuery<TResponse> : IRequest<TResponse>, ICachedQuery;
 2. Build the key: `IsCultureAware ? $"{CacheKey}_{languageContext.Language}" : CacheKey`.
    This is what stops an Arabic response being served to an English caller.
 3. Probe with `GetOrCreateAsync` + `HybridCacheEntryFlags.DisableUnderlyingData` — a read-only
-   lookup that returns `null` on a miss instead of invoking a factory.
+   lookup that returns `null` on a miss instead of invoking a factory. **The probe passes the
+   query's `Tags`**: on an L2 (Redis) hit HybridCache copies the value into L1 with the tags of
+   that call, and an L1 entry without tags is never evicted by `RemoveByTagAsync`.
 4. On a miss: `await next(ct)`, then `SetAsync` **only if `result is IResult { IsSuccess: true }`**.
-   Failures are never cached, so a 404 does not stick for ten minutes.
+   Failures are never cached, so a 404 does not stick for ten minutes. `SetAsync` sets
+   `LocalCacheExpiration` explicitly (`CacheDefaults.LocalExpirationFor`) — per-call options do
+   not inherit the registered defaults, and L1 would otherwise live as long as `Expiration`.
 
 `HybridCache` itself is registered in `AddInfrastructure` (10-minute default expiration,
-30-second L1 window).
+30-second L1 window from `CacheDefaults.LocalExpiration`), with Redis as L2 when
+`ConnectionStrings:Redis` is set.
+
+### Multiple instances
+
+With Redis configured, every instance shares L2 entries and tag invalidations. HybridCache has
+no backplane, so after a write on node A, node B may serve its own L1 copy for up to
+`CacheDefaults.LocalExpiration` (30 s) before it re-reads L2 and sees the invalidation. That is
+the staleness budget for any cached query; shorten `LocalExpiration` if a query cannot tolerate
+it, or do not cache it. Without Redis the cache is per-process and only correct for a single
+instance.
 
 ### Invalidation is your job
 

@@ -222,7 +222,10 @@ background job, future code).
 
 Opt-in per query via `ICachedQuery<TResponse>` (`CacheKey`, `Tags`, `Expiration`,
 `IsCultureAware` defaulting to `true`). `HybridCache` is registered in
-`AddInfrastructure` with a 10-minute default expiration and a 30-second L1 window.
+`AddInfrastructure` with a 10-minute default expiration and a 30-second L1 window; when
+`ConnectionStrings:Redis` is set, Redis is the shared L2, so cached values and tag invalidations
+reach every instance (other nodes can lag by up to the 30-second L1 window — there is no
+backplane).
 
 Invalidation is tag-based and manual: every command that mutates cached data calls
 `RemoveByTagAsync` with the same

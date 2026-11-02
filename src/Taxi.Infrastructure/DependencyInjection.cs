@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
+using Taxi.Application.Common.Caching;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Infrastructure.Data;
 using Taxi.Infrastructure.Data.Interceptors;
@@ -104,10 +106,39 @@ public static class DependencyInjection
         services.AddTransient<IIdentityService, IdentityService>();
         services.AddTransient<ITokenProvider, TokenProvider>();
 
-        services.AddHybridCache(options => options.DefaultEntryOptions = new Microsoft.Extensions.Caching.Hybrid.HybridCacheEntryOptions
+        services.AddAppCaching(configuration);
+
+        return services;
+    }
+
+    /// <summary>
+    /// HybridCache with an optional Redis L2. When <c>ConnectionStrings:Redis</c> is set, Redis is
+    /// registered as the <see cref="Microsoft.Extensions.Caching.Distributed.IDistributedCache"/>
+    /// HybridCache uses as its second level, so every instance shares cached values and tag
+    /// invalidations. Without it the cache is in-process only — fine for a single instance.
+    /// <para>
+    /// HybridCache has no backplane: after a <c>RemoveByTagAsync</c> on one node, another node may
+    /// serve its own L1 copy for up to <c>LocalCacheExpiration</c> (30 s) before it re-checks L2.
+    /// </para>
+    /// </summary>
+    /// <returns>The service collection, for chaining.</returns>
+    public static IServiceCollection AddAppCaching(this IServiceCollection services, IConfiguration configuration)
+    {
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+
+        if (!string.IsNullOrWhiteSpace(redisConnectionString))
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString;
+                options.InstanceName = "taxi:";
+            });
+        }
+
+        services.AddHybridCache(options => options.DefaultEntryOptions = new HybridCacheEntryOptions
         {
             Expiration = TimeSpan.FromMinutes(10),
-            LocalCacheExpiration = TimeSpan.FromSeconds(30),
+            LocalCacheExpiration = CacheDefaults.LocalExpiration,
         });
 
         return services;

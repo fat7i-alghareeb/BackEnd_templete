@@ -336,7 +336,11 @@ In order:
    registered, which is correct for a token API. Password rules are deliberately relaxed
    (6 chars, no digit/upper/symbol requirement) — tighten before production.
 9. `AddTransient<IIdentityService, IdentityService>()`, `AddTransient<ITokenProvider, TokenProvider>()`.
-10. `AddHybridCache` — 10-minute default expiration, 30-second L1 window.
+10. `AddAppCaching` — `AddStackExchangeRedisCache` (instance prefix `taxi:`) **only when**
+    `ConnectionStrings:Redis` is set, then `AddHybridCache` with a 10-minute default expiration and
+    the 30-second L1 window from `CacheDefaults.LocalExpiration`. HybridCache picks up the
+    registered `IDistributedCache` as its L2 automatically. Compose sets `redis:6379`; plain
+    `dotnet run` leaves it blank and caches in-process.
 
 Note the lifetimes: the interceptor and `DbContext` are **scoped**; the identity services are
 **transient** but depend on scoped `UserManager` / `IAppDbContext`, which is safe (transient
