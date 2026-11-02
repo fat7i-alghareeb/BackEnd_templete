@@ -11,6 +11,9 @@ public static class CacheTags
     /// <summary>Everything derived from the <c>Cars</c> table.</summary>
     public const string Cars = "car";
 
+    /// <summary>Everything derived from the <c>Drivers</c> table (including their certifications).</summary>
+    public const string Drivers = "driver";
+
     /// <summary>Per-user identity projections returned by <c>GetUserByIdQuery</c>.</summary>
     public const string UserInfo = "user-info";
 }

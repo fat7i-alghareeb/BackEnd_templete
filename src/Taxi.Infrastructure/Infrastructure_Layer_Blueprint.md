@@ -149,6 +149,13 @@ Properties to design for:
 
 ## 5. Entity configuration
 
+Two configurations are references: `CarConfiguration` (scalar columns, a `LocalizedText` JSON
+column, soft delete, `xmin`) and `DriverConfiguration` — an owned collection
+(`OwnsMany(...).ToTable("DriverCertifications")`) whose `LocalizedText` is stored as flat
+`NameEn` / `NameAr` columns, a relationship by id (`HasOne<Car>().WithMany().HasForeignKey(...)`,
+no navigations, `Restrict`), and unique indexes for the licence number and the assigned car
+(filtered on `IS NOT NULL`).
+
 ```csharp
 public class CarConfiguration : IEntityTypeConfiguration<Car>
 {

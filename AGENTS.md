@@ -4,8 +4,9 @@
 this repository, not from generic Clean Architecture advice.
 
 The **`Car` feature is the reference implementation.** When adding anything, open the matching
-`Car` file and copy its shape. If this document and the code ever disagree, the code wins — and
-then fix this document.
+`Car` file and copy its shape. **`Driver` is the second reference** for what `Car` does not have: a
+child collection, a relationship to another aggregate, a cross-aggregate rule and a domain event.
+If this document and the code ever disagree, the code wins — and then fix this document.
 
 | Also | Where |
 |---|---|
@@ -22,7 +23,8 @@ This file covers an ordinary feature end to end. Open a blueprint when you hit o
 | If you are… | Also read |
 |---|---|
 | adding a plain entity with CRUD endpoints | nothing — this file is enough |
-| adding a **localized child collection** | [Infrastructure §5 Entity configuration](src/Taxi.Infrastructure/Infrastructure_Layer_Blueprint.md) — `OwnsMany` + `ToJson` is unsupported |
+| adding a **child collection** or a **localized child collection** | copy `Driver.Certifications` (`Domain/Drivers/`, `DriverConfiguration.cs`) — `OwnsMany` + `ToJson` is unsupported, see [Infrastructure §5](src/Taxi.Infrastructure/Infrastructure_Layer_Blueprint.md) |
+| adding a **relationship** between aggregates or a rule spanning them | copy `Driver.AssignedCarId` + `AssignDriverCarCommandHandler` + `RemoveCarCommandHandler` |
 | adding or reordering a **pipeline behaviour** | [Application §7 Pipeline behaviours](src/Taxi.Application/Application_Layer_Blueprint.md) |
 | adding a **domain event** | [Domain §10a](src/Taxi.Domain/Domain_Layer_Blueprint.md) + [Application §11a](src/Taxi.Application/Application_Layer_Blueprint.md) + the outbox in [Infrastructure §4](src/Taxi.Infrastructure/Infrastructure_Layer_Blueprint.md) — handlers run in the background, at least once |
 | declaring a **new Application interface** | [Application §13 Talking to other layers](src/Taxi.Application/Application_Layer_Blueprint.md) — decides Infrastructure vs Api for the implementation |
@@ -313,7 +315,8 @@ public string[] Tags => [CacheTags.Cars];
 await this.cache.RemoveByTagAsync(CacheTags.Cars, cancellationToken);
 ```
 
-Cached today: `GetCarsQuery` and `GetCarByIdQuery`, both invalidated by all three Car commands.
+Cached today: `GetCarsQuery` and `GetCarByIdQuery` (tag `Cars`, evicted by every car command) and
+`GetDriversQuery` / `GetDriverByIdQuery` (tag `Drivers`, evicted by every driver command).
 
 **`GetUserByIdQuery` is deliberately not cached** — it returns roles and claims, nothing evicts
 `CacheTags.UserInfo`, and a stale role set after a permission change is the wrong trade. If you add
@@ -383,6 +386,11 @@ These files **are** the templates. Read the current source rather than a copy th
 | EF configuration | `src/Taxi.Infrastructure/Data/Configurations/CarConfiguration.cs` |
 | controller | `src/Taxi.Api/Controllers/CarsController.cs` |
 | domain unit tests | `tests/Taxi.Domain.UnitTests/Cars/CarTests.cs` |
+| aggregate with a child collection | `src/Taxi.Domain/Drivers/Driver.cs` + `DriverCertification.cs` |
+| owned collection mapping (flat `LocalizedText` columns) | `src/Taxi.Infrastructure/Data/Configurations/DriverConfiguration.cs` |
+| relationship by id + cross-aggregate rule | `src/Taxi.Application/Features/Drivers/Commands/AssignDriverCar/` |
+| domain event + handler | `Domain/Drivers/Events/` + `Application/Features/Drivers/EventHandlers/` |
+| sub-resource routes | `src/Taxi.Api/Controllers/DriversController.cs` (`/{id}/certifications`, `/{id}/car`) |
 
 **Not visible in those files — read before you copy:**
 
@@ -447,7 +455,7 @@ outermost so no other behaviour's exception goes unlogged, and `ValidationBehavi
 
 ```powershell
 dotnet build Taxi_Server.slnx -c Debug      # must be clean; StyleCop runs here
-dotnet test Taxi_Server.slnx                # 153 tests today; the integration suite needs Docker
+dotnet test Taxi_Server.slnx                # 178 tests today; the integration suite needs Docker
 dotnet list package --vulnerable --include-transitive
 npx markdownlint-cli2                       # if you touched any .md
 docker compose up -d postgres

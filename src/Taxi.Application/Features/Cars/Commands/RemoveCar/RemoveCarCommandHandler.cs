@@ -23,6 +23,12 @@ public class RemoveCarCommandHandler(IAppDbContext context, HybridCache cache) :
             return CarErrors.NotFound;
         }
 
+        // A rule that spans aggregates: a car someone drives cannot disappear under them.
+        if (await this.context.Drivers.AnyAsync(d => d.AssignedCarId == car.Id, cancellationToken))
+        {
+            return CarErrors.AssignedToDriver;
+        }
+
         this.context.Cars.Remove(car);
 
         await this.context.SaveChangesAsync(cancellationToken);

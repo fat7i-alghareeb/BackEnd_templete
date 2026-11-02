@@ -223,6 +223,59 @@ DELETE {{baseUrl}}/api/v1/cars/{{carId}}
 Authorization: Bearer {{token}}
 
 ### ---------------------------------------------------------------------------
+### 2x. Drivers — second reference: child collection, relationship, domain event
+
+### Create → 201 (licence numbers are unique, case-insensitive)
+# @name createDriver
+POST {{baseUrl}}/api/v1/drivers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Sami Haddad",
+  "licenseNumber": "DL-{{$randomInt 1000 9999}}"
+}
+
+@driverId = {{createDriver.response.body.id}}
+
+### Add a certification (child collection; name in both languages, future expiry) → 201
+POST {{baseUrl}}/api/v1/drivers/{{driverId}}/certifications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nameEn": "First aid",
+  "nameAr": "الإسعافات الأولية",
+  "expiresOn": "2030-01-01"
+}
+
+### Assign a car (one driver per car) → 204; raises DriverAssignedToCarDomainEvent via the outbox
+PUT {{baseUrl}}/api/v1/drivers/{{driverId}}/car
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "carId": "{{carId}}"
+}
+
+### Deleting an assigned car → 409 "The car is assigned to a driver"
+DELETE {{baseUrl}}/api/v1/cars/{{carId}}
+Authorization: Bearer {{token}}
+
+### Read it back — certification names follow Accept-Language
+GET {{baseUrl}}/api/v1/drivers/{{driverId}}
+Authorization: Bearer {{token}}
+Accept-Language: ar
+
+### Unassign → 204
+DELETE {{baseUrl}}/api/v1/drivers/{{driverId}}/car
+Authorization: Bearer {{token}}
+
+### List, searching name or licence
+GET {{baseUrl}}/api/v1/drivers?search=sami
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------------------
 ### 3. Failure paths
 
 ### 3a. No token → 401

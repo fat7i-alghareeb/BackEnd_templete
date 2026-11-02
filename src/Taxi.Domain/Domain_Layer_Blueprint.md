@@ -384,6 +384,22 @@ The Domain never calls out. Everything is inbound:
 
 ---
 
+## 9a. The second reference aggregate: `Driver`
+
+`Driver` shows what `Car` cannot:
+
+- **A child collection.** `Certifications` is backed by a private `List<DriverCertification>` and
+  exposed read-only; it changes only through `AddCertification` / `RemoveCertification`, which own
+  its rules (both names required, no duplicate name, at most `MaxCertifications`, parametrized
+  error). `DriverCertification` has no public constructor and no setters.
+- **A relationship by id.** `AssignedCarId` is a `Guid?`, never a `Car` navigation: aggregates
+  reference each other by identity.
+- **Where a rule lives.** "Not already on this car" is the driver's own state → `AssignCar`. "The car
+  exists" and "nobody else drives it" need queries → `AssignDriverCarCommandHandler`, backed by a
+  unique index. "An assigned car cannot be deleted" → `RemoveCarCommandHandler`.
+- **A domain event** with data from before the change: `DriverAssignedToCarDomainEvent` carries
+  `PreviousCarId`.
+
 ## 10a. Domain events
 
 `DomainEvent` is an `abstract record : INotification` (the one sanctioned MediatR touchpoint). The

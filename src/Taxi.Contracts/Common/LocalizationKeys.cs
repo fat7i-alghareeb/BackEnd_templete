@@ -12,6 +12,23 @@ public static class LocalizationKeys
         public const string NotFound = "Car.NotFound";
         public const string ImageKeyRequired = "Car.ImageKey.Required";
         public const string ImageNotFound = "Car.Image.NotFound";
+        public const string AssignedToDriver = "Car.AssignedToDriver";
+    }
+
+    public static class Driver
+    {
+        public const string IdRequired = "Driver.Id.Required";
+        public const string FullNameRequired = "Driver.FullName.Required";
+        public const string LicenseNumberRequired = "Driver.LicenseNumber.Required";
+        public const string LicenseNumberTaken = "Driver.LicenseNumber.Taken";
+        public const string CertificationNameRequired = "Driver.Certification.Name.Required";
+        public const string CertificationAlreadyHeld = "Driver.Certification.AlreadyHeld";
+        public const string CertificationNotFound = "Driver.Certification.NotFound";
+        public const string TooManyCertifications = "Driver.Certifications.TooMany";
+        public const string AlreadyAssignedToCar = "Driver.Car.AlreadyAssigned";
+        public const string NotAssigned = "Driver.Car.NotAssigned";
+        public const string CarTaken = "Driver.Car.Taken";
+        public const string NotFound = "Driver.NotFound";
     }
 
     public static class RefreshToken
@@ -101,6 +118,14 @@ public static class LocalizationKeys
         public const string UserIdRequired = "Validation.UserId.Required";
         public const string RolesRequired = "Validation.Roles.Required";
         public const string RoleInvalid = "Validation.Role.Invalid";
+        public const string FullNameRequired = "Validation.FullName.Required";
+        public const string FullNameTooLong = "Validation.FullName.TooLong";
+        public const string LicenseNumberRequired = "Validation.LicenseNumber.Required";
+        public const string LicenseNumberTooLong = "Validation.LicenseNumber.TooLong";
+        public const string CertificationNameRequired = "Validation.CertificationName.Required";
+        public const string CertificationNameTooLong = "Validation.CertificationName.TooLong";
+        public const string ExpiresOnInvalid = "Validation.ExpiresOn.Invalid";
+        public const string CarIdRequired = "Validation.CarId.Required";
         public const string SortByInvalid = "Validation.SortBy.Invalid";
         public const string SortDirectionInvalid = "Validation.SortDirection.Invalid";
     }

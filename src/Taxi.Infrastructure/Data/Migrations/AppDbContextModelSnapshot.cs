@@ -214,6 +214,55 @@ namespace Taxi.Infrastructure.Data.Migrations
                     b.ToTable("Cars");
                 });
 
+            modelBuilder.Entity("Taxi.Domain.Drivers.Driver", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedCarId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("LastModifiedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LicenseNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedCarId")
+                        .IsUnique()
+                        .HasFilter("\"AssignedCarId\" IS NOT NULL");
+
+                    b.HasIndex("LicenseNumber")
+                        .IsUnique();
+
+                    b.ToTable("Drivers");
+                });
+
             modelBuilder.Entity("Taxi.Domain.Identity.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -433,6 +482,65 @@ namespace Taxi.Infrastructure.Data.Migrations
 
                     b.Navigation("Description")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Taxi.Domain.Drivers.Driver", b =>
+                {
+                    b.HasOne("Taxi.Domain.Cars.Car", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedCarId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.OwnsMany("Taxi.Domain.Drivers.DriverCertification", "Certifications", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("DriverId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateOnly>("ExpiresOn")
+                                .HasColumnType("date");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("DriverId");
+
+                            b1.ToTable("DriverCertifications", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("DriverId");
+
+                            b1.OwnsOne("Taxi.Domain.Common.LocalizedText", "Name", b2 =>
+                                {
+                                    b2.Property<Guid>("DriverCertificationId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<string>("Ar")
+                                        .IsRequired()
+                                        .HasMaxLength(100)
+                                        .HasColumnType("character varying(100)")
+                                        .HasColumnName("NameAr");
+
+                                    b2.Property<string>("En")
+                                        .IsRequired()
+                                        .HasMaxLength(100)
+                                        .HasColumnType("character varying(100)")
+                                        .HasColumnName("NameEn");
+
+                                    b2.HasKey("DriverCertificationId");
+
+                                    b2.ToTable("DriverCertifications");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("DriverCertificationId");
+                                });
+
+                            b1.Navigation("Name")
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Certifications");
                 });
 #pragma warning restore 612, 618
         }

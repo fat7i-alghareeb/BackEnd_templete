@@ -178,6 +178,11 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 | ![PUT](https://img.shields.io/badge/PUT-3B82F6) | `/api/v1/cars/{id}/image` | 🔒 Manager | Upload/replace the image (multipart `file`, JPEG/PNG/WebP, ≤ 5 MB) |
 | ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/cars/{id}/image` | 🔒 | Download the image |
 | ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/cars/{id}/image` | 🔒 Manager | Remove the image |
+| ![GET](https://img.shields.io/badge/GET-10B981) | `/api/v1/drivers` · `/api/v1/drivers/{id}` | 🔒 | List (paged, `search`) / get drivers with their certifications |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) | `/api/v1/drivers` | 🔒 Manager | Create a driver (unique licence number) |
+| ![PUT](https://img.shields.io/badge/PUT-3B82F6) ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/drivers/{id}` | 🔒 Manager | Update / delete a driver |
+| ![POST](https://img.shields.io/badge/POST-F59E0B) ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/drivers/{id}/certifications[/{certId}]` | 🔒 Manager | Add / remove a certification (child collection) |
+| ![PUT](https://img.shields.io/badge/PUT-3B82F6) ![DELETE](https://img.shields.io/badge/DELETE-EF4444) | `/api/v1/drivers/{id}/car` | 🔒 Manager | Assign / unassign a car (one driver per car; an assigned car cannot be deleted) |
 
 Errors always come back as `ProblemDetails`, translated by `Accept-Language`:
 

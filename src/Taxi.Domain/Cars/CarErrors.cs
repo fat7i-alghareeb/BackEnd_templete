@@ -33,6 +33,10 @@ public static class CarErrors
         code: LocalizationKeys.Car.ImageNotFound,
         description: "This car has no image.");
 
+    public static readonly Error AssignedToDriver = Error.Conflict(
+        code: LocalizationKeys.Car.AssignedToDriver,
+        description: "The car is assigned to a driver. Unassign it first.");
+
     public static readonly Error NotFound = Error.NotFound(
         code: LocalizationKeys.Car.NotFound,
         description: "Car was not found.");

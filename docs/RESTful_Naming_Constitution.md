@@ -32,6 +32,7 @@ control over casing or hyphenation.
 | Resource | Route |
 |---|---|
 | Cars | `api/v{version:apiVersion}/cars` |
+| Drivers | `api/v{version:apiVersion}/drivers` |
 | Users (administration) | `api/v{version:apiVersion}/users` |
 | Auth (version-neutral) | `api/token` |
 | Account self-service (version-neutral) | `api/account` |
@@ -63,6 +64,15 @@ The matrix `CarsController` implements:
 | `POST` | `/cars` | `CreateCar` | `201` + `CarDto` + `Location` | `400` |
 | `PUT` | `/cars/{id:guid}` | `UpdateCar` | `204` | `400`, `404` |
 | `DELETE` | `/cars/{id:guid}` | `RemoveCar` | `204` | `404` |
+
+`DriversController` adds the two sub-resource shapes, each one level deep (rule 3):
+
+| Verb | Route | Meaning | Success | Failure |
+|---|---|---|---|---|
+| `POST` | `/drivers/{id:guid}/certifications` | add a member of a child collection | `201` | `400`, `404`, `409` |
+| `DELETE` | `/drivers/{id:guid}/certifications/{certificationId:guid}` | remove it | `204` | `404` |
+| `PUT` | `/drivers/{id:guid}/car` | set a to-one relationship (body: `carId`) | `204` | `400`, `404`, `409` |
+| `DELETE` | `/drivers/{id:guid}/car` | clear it | `204` | `404`, `409` |
 
 Additional statuses the pipeline can produce without controller involvement: `401` (no or invalid
 token), `403` (role or policy denied), `409` (`ErrorKind.Conflict`), `429` (rate limiter),

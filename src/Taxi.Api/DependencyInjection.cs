@@ -383,6 +383,8 @@ public static class DependencyInjection
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
             .AddPolicy(Policies.CanReadCars, policy => policy.RequireRole(Roles.Manager, Roles.User))
             .AddPolicy(Policies.CanManageCars, policy => policy.RequireRole(Roles.Manager))
+            .AddPolicy(Policies.CanReadDrivers, policy => policy.RequireRole(Roles.Manager, Roles.User))
+            .AddPolicy(Policies.CanManageDrivers, policy => policy.RequireRole(Roles.Manager))
             .AddPolicy(Policies.CanManageUsers, policy => policy.RequireRole(Roles.Manager));
 
         return services;

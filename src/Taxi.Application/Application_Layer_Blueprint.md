@@ -77,6 +77,12 @@ src/Taxi.Application/
 │   │   ├── Commands/<UseCase>/{<UseCase>Command,…Handler,…Validator}.cs
 │   │   └── Emails/AccountEmails.cs  builds localized EmailMessages
 │   ├── Users/Commands/SetUserRoles/ Manager-only role assignment
+│   ├── Drivers/                     second reference: child collection, relationship, event
+│   │   ├── Commands/{Create,Update,Remove}Driver/, {Add,Remove}DriverCertification/,
+│   │   │   {Assign,Unassign}DriverCar/
+│   │   ├── Queries/{GetDrivers,GetDriverById}/
+│   │   ├── EventHandlers/DriverAssignedToCarDomainEventHandler.cs
+│   │   ├── Dtos/  Mappers/
 │   ├── Cars/
 │   │   ├── Commands/
 │   │   │   ├── CreateCar/{CreateCarCommand,CreateCarCommandHandler,CreateCarCommandValidator}.cs
