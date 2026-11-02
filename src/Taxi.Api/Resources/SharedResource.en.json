@@ -31,5 +31,6 @@
   "Validation.SortDirection.Invalid": "Sort direction must be \"asc\" or \"desc\".",
   "Validation.Make.TooLong": "Car make must be 100 characters or fewer.",
   "Validation.Model.TooLong": "Car model must be 100 characters or fewer.",
-  "Validation.Description.TooLong": "Car description must be 1000 characters or fewer."
+  "Validation.Description.TooLong": "Car description must be 1000 characters or fewer.",
+  "Concurrency.Conflict": "The resource was changed by someone else. Reload it and try again."
 }

@@ -1,15 +1,21 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+
+using Taxi.Contracts.Common;
 
 namespace Taxi.Api.Infrastructure;
 
 public class GlobalExceptionHandler(
     IProblemDetailsService problemDetailsService,
-    IHostEnvironment environment) : IExceptionHandler
+    IHostEnvironment environment,
+    IStringLocalizer<SharedResource> localizer) : IExceptionHandler
 {
     private readonly IProblemDetailsService problemDetailsService = problemDetailsService;
     private readonly IHostEnvironment environment = environment;
+    private readonly IStringLocalizer<SharedResource> localizer = localizer;
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -32,6 +38,24 @@ public class GlobalExceptionHandler(
                     Status = badRequest.StatusCode,
                     Title = ReasonPhrases.GetReasonPhrase(badRequest.StatusCode),
                     Detail = badRequest.Message,
+                },
+            });
+        }
+
+        // Optimistic concurrency (xmin token): the row changed between load and save. Not a server
+        // fault — the client should reload and retry.
+        if (exception is DbUpdateConcurrencyException)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+
+            return await this.problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = httpContext,
+                Exception = exception,
+                ProblemDetails = new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Title = this.localizer[LocalizationKeys.Concurrency.Conflict].Value,
                 },
             });
         }

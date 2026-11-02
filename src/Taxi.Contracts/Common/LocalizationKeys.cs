@@ -31,6 +31,11 @@ public static class LocalizationKeys
         public const string InvalidLoginAttempt = "Auth.Login.Invalid";
     }
 
+    public static class Concurrency
+    {
+        public const string Conflict = "Concurrency.Conflict";
+    }
+
     public static class RateLimit
     {
         public const string Exceeded = "RateLimit.Exceeded";

@@ -35,5 +35,7 @@ public class CarConfiguration : IEntityTypeConfiguration<Car>
 
         builder.Property(c => c.DeletedBy)
                .HasMaxLength(450);
+
+        builder.UseXminConcurrencyToken();
     }
 }

@@ -31,5 +31,6 @@
   "Validation.SortDirection.Invalid": "يجب أن يكون اتجاه الترتيب \"asc\" أو \"desc\".",
   "Validation.Make.TooLong": "يجب ألا يتجاوز نوع السيارة 100 حرف.",
   "Validation.Model.TooLong": "يجب ألا يتجاوز طراز السيارة 100 حرف.",
-  "Validation.Description.TooLong": "يجب ألا يتجاوز وصف السيارة 1000 حرف."
+  "Validation.Description.TooLong": "يجب ألا يتجاوز وصف السيارة 1000 حرف.",
+  "Concurrency.Conflict": "تم تعديل المورد من قبل شخص آخر. أعد تحميله وحاول مرة أخرى."
 }

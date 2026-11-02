@@ -250,6 +250,8 @@ share one context and one transaction.
 - `SaveChangesAsync` is overridden to **dispatch domain events via `IMediator.Publish` before**
   calling `base.SaveChangesAsync`. The mechanism is complete; no concrete `DomainEvent` subclass
   exists yet.
+- `Car` uses PostgreSQL's `xmin` as an optimistic concurrency token (shadow property, no extra
+  column); a lost race surfaces as `DbUpdateConcurrencyException` → localized 409.
 - `SoftDeleteInterceptor` turns a delete of any `ISoftDeletable` (today `Car`) into an update of
   `IsDeleted` / `DeletedAtUtc` / `DeletedBy`; a global query filter hides deleted rows.
 - `AuditableEntityInterceptor` (an `ISaveChangesInterceptor`) stamps `CreatedAtUtc` / `CreatedBy` /

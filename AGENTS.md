@@ -234,7 +234,7 @@ Failure travels as `Error` (a `readonly record struct`) inside `Result<T>`. Neve
 Error.Validation(code, description)                 // 400
 Error.ValidationForProperty(propertyName, code)     // 400, keyed by field (ValidationBehavior only)
 Error.NotFound(code, description)                   // 404
-Error.Conflict(code, description)                   // 409
+Error.Conflict(code, description)                   // 409 (also: DbUpdateConcurrencyException, via GlobalExceptionHandler)
 Error.Unauthorized(code, description)               // 401
 Error.Forbidden(code, description)                  // 403
 Error.Failure / Error.Unexpected                    // 500

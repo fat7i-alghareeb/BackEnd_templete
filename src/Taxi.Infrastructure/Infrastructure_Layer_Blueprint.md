@@ -234,6 +234,25 @@ no longer sees the row (a deleted car is a 404). Use `IgnoreQueryFilters()` only
 
 To make another entity soft-deletable: implement `ISoftDeletable`, add a migration. Nothing else.
 
+### Optimistic concurrency
+
+`CarConfiguration` calls `builder.UseXminConcurrencyToken()`
+(`Configurations/ConcurrencyTokenExtensions.cs`): a `uint` **shadow** property mapped to
+PostgreSQL's `xmin` system column — the id of the transaction that last wrote the row — with
+`IsRowVersion()`. No column is added (the migration's `AddColumn` produces no SQL; Npgsql skips
+system columns), and the domain never sees it.
+
+Every `UPDATE` of a tracked car then carries `WHERE "Id" = @id AND xmin = @original` and reads the
+new value back with `RETURNING xmin`. If another transaction changed the row between the handler's
+load and its `SaveChangesAsync`, zero rows match and EF throws `DbUpdateConcurrencyException`;
+`GlobalExceptionHandler` maps that to a localized **409** (`LocalizationKeys.Concurrency.Conflict`)
+instead of silently letting the last writer win. Add the call to any configuration whose entity
+is updated by read-modify-write.
+
+The token protects the read-modify-write inside one request. It is not exposed to clients, so it
+does not detect a client editing a stale copy fetched minutes earlier; that would need the value in
+the DTO plus `If-Match` / `ETag`.
+
 ---
 
 ## 7. Initialisation and seeding

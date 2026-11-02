@@ -197,6 +197,12 @@ namespace Taxi.Infrastructure.Data.Migrations
                     b.Property<int>("Year")
                         .HasColumnType("integer");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Make", "Model");
