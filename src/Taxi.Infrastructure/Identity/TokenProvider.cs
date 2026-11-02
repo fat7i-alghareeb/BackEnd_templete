@@ -46,12 +46,26 @@ public class TokenProvider(IOptions<JwtSettings> jwtSettings, IAppDbContext cont
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();
-        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
+
+        ClaimsPrincipal principal;
+        SecurityToken securityToken;
+
+        // The token comes straight from the request body: a malformed, tampered or wrongly signed
+        // value is a client error, so it maps to null (→ ExpiredAccessTokenInvalid) rather than an
+        // exception that would surface as a 500.
+        try
+        {
+            principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+        }
+        catch (Exception ex) when (ex is SecurityTokenException or ArgumentException)
+        {
+            return null;
+        }
 
         if (securityToken is not JwtSecurityToken jwtSecurityToken ||
             !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
         {
-            throw new SecurityTokenException("Invalid token.");
+            return null;
         }
 
         return principal;
