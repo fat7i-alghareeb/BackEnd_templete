@@ -15,12 +15,12 @@
 <img src="https://img.shields.io/badge/MediatR-14-F43F5E?style=flat-square" alt="MediatR 14"/>
 <img src="https://img.shields.io/badge/FluentValidation-12-F59E0B?style=flat-square" alt="FluentValidation 12"/>
 <img src="https://img.shields.io/badge/Auth-JWT_%2B_Refresh-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" alt="JWT"/>
-<img src="https://img.shields.io/badge/Cache-HybridCache-38BDF8?style=flat-square" alt="HybridCache"/>
+<img src="https://img.shields.io/badge/Cache-HybridCache_%2B_Redis-38BDF8?style=flat-square" alt="HybridCache and Redis"/>
 <img src="https://img.shields.io/badge/Logs-Serilog_%2B_Seq-2DD4BF?style=flat-square" alt="Serilog + Seq"/>
 <img src="https://img.shields.io/badge/OpenTelemetry-traces_%26_metrics-425CC7?style=flat-square&logo=opentelemetry&logoColor=white" alt="OpenTelemetry"/>
 <img src="https://img.shields.io/badge/Prometheus-metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white" alt="Prometheus"/>
 <img src="https://img.shields.io/badge/Grafana-dashboards-F46800?style=flat-square&logo=grafana&logoColor=white" alt="Grafana"/>
-<img src="https://img.shields.io/badge/Tests-xUnit-34D399?style=flat-square" alt="xUnit"/>
+<img src="https://img.shields.io/badge/Tests-xUnit_%2B_Testcontainers-34D399?style=flat-square" alt="xUnit and Testcontainers"/>
 <img src="https://img.shields.io/badge/Style-StyleCop-64748B?style=flat-square" alt="StyleCop"/>
 <img src="https://img.shields.io/badge/i18n-English_%7C_العربية-FBBF24?style=flat-square" alt="English and Arabic"/>
 
@@ -42,12 +42,13 @@ production concerns already wired in: <b>authentication</b>, <b>caching</b>, <b>
 
 <br/>
 
-<img src="assets/stats.svg" alt="6 projects, 5 pipeline stages, 2 languages, 17-step feature recipe, 5 Docker services, 7 error kinds" width="100%"/>
+<img src="assets/stats.svg" alt="5 source projects, 5 pipeline stages, 2 languages, 17-step feature recipe, 7 Docker services, 7 error kinds" width="100%"/>
 
 > [!NOTE]
 > **This is not a taxi app.** The projects use `Taxi.*` as a placeholder root namespace, and the
-> `Car` entity is a small **reference feature** that shows the full pattern end to end. Rename the
-> namespace, delete `Car` when you have your own feature, and the plumbing stays.
+> `Car` and `Driver` entities are small **reference features** that show the full pattern end to
+> end. Rename the namespace with `rename.ps1`, delete them when you have your own features, and the
+> plumbing stays.
 
 ---
 
@@ -70,7 +71,8 @@ production concerns already wired in: <b>authentication</b>, <b>caching</b>, <b>
 
 ### 🧅 Clean Architecture
 
-Six projects, dependencies pointing inward. The domain has no idea HTTP, EF Core or JWT exist.
+Five source projects, dependencies pointing inward, enforced by architecture tests. The domain has
+no idea HTTP, EF Core or JWT exist.
 
 </td>
 <td width="33%" valign="top">
@@ -95,8 +97,8 @@ Business failures are values, not exceptions. `Result<T>` turns into a 2xx or an
 
 ### 🔐 JWT + refresh + RBAC
 
-HMAC-SHA256 access tokens, rotating refresh tokens (one live per user, 7 days), and role claims
-behind named policies (`CanReadCars`, `CanManageCars`).
+HMAC-SHA256 access tokens, rotating refresh tokens (one live per user, 7 days), account lockout,
+and role claims behind named policies (`Policies.*`).
 
 </td>
 <td valign="top">
@@ -111,8 +113,8 @@ picks the language.
 
 ### 🚀 Cache + observability
 
-HybridCache per query, split by language. Serilog, OpenTelemetry, Seq, Prometheus and Grafana
-come up with one `docker compose`.
+HybridCache per query, split by language, with an optional Redis L2. Serilog, OpenTelemetry, Seq,
+Prometheus and Grafana come up with one `docker compose`.
 
 </td>
 </tr>
@@ -121,16 +123,16 @@ come up with one `docker compose`.
 
 ### 🐘 PostgreSQL + EF Core
 
-Migrations, retry on startup, audit stamping, domain event dispatch, and JSONB for localized
-fields.
+Migrations with retry on startup, audit stamping, soft delete, `xmin` concurrency, a transactional
+outbox for domain events, and JSONB for localized fields.
 
 </td>
 <td valign="top">
 
 ### 🧪 Tests + analyzers
 
-xUnit suites lock down domain guards and pipeline order. StyleCop runs on every build, and GitHub
-Actions builds and tests every push.
+Unit, architecture and Testcontainers integration suites. StyleCop runs on every build, and GitHub
+Actions builds with warnings as errors, tests with coverage, builds the image and lints the docs.
 
 </td>
 <td valign="top">
@@ -169,27 +171,25 @@ flowchart LR
     classDef app fill:#4C1D95,stroke:#A78BFA,color:#fff
     classDef dom fill:#6D28D9,stroke:#EDE9FE,color:#fff
     classDef con fill:#78350F,stroke:#FBBF24,color:#fff
-    classDef cli fill:#1E293B,stroke:#64748B,color:#CBD5E1
     class API api
     class INF inf
     class APP app
     class DOM dom
     class CON con
-    class CLI cli
 ```
 
 | Layer | Owns | Must never |
 |:--|:--|:--|
-| 💎 **Domain** | Entities (private ctor + `Create` factory), `<Entity>Errors`, `LocalizedText`, `Result<T>` | throw for a business rule, touch EF / ASP.NET |
+| 💎 **Domain** | Entities (private ctor + `Create` factory), `<Entity>Errors`, `LocalizedText`, `Result<T>`, domain events | throw for a business rule, touch EF / ASP.NET |
 | ⚙️ **Application** | Use-case folders, validators, DTOs, mappers, MediatR behaviours, interfaces | reference `HttpContext` or Infrastructure types |
-| 🏗️ **Infrastructure** | `AppDbContext`, configurations, migrations, seeding, Identity, JWT, HybridCache | define business abstractions |
-| 🌐 **Api** | Thin controllers, ProblemDetails, versioning, OpenAPI, rate limiting, telemetry | contain `try/catch`, business `if`s or data access |
+| 🏗️ **Infrastructure** | `AppDbContext`, configurations, migrations, seeding, Identity, JWT, outbox, cache, files, email | define business abstractions |
+| 🌐 **Api** | Thin controllers, ProblemDetails, versioning, OpenAPI, rate limiting, idempotency, telemetry | contain `try/catch`, business `if`s or data access |
 | 📜 **Contracts** | Request DTOs with `DataAnnotations`, `LocalizationKeys`, `Languages` | reference Domain or Application |
 
 > [!IMPORTANT]
 > `Taxi.Domain → Taxi.Contracts` is intentional. Error codes are `LocalizationKeys` constants, and
-> Contracts is the one project the Domain and the API (and any .NET client) can all see. The reasoning is in
-> the [Domain blueprint](../src/Taxi.Domain/Domain_Layer_Blueprint.md).
+> Contracts is the one project the Domain and the API (and any .NET client) can all see. The
+> reasoning is in the [Domain blueprint](../src/Taxi.Domain/Domain_Layer_Blueprint.md).
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 
@@ -211,10 +211,10 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     C->>M: POST /api/v1/cars  (Bearer, Accept-Language: ar)
-    Note over M: localization → log context → exception handler<br/>→ CORS → rate limiter → authN → authZ
+    Note over M: localization → log context → security headers → exception handler<br/>→ CORS → authN → rate limiter → authZ
     M->>K: bind CreateCarRequest (DataAnnotations)
     K->>P: sender.Send(CreateCarCommand)
-    P->>P: validate · time · (cache for queries)
+    P->>P: log · validate · time · (cache for queries)
     P->>H: Handle(command)
     H->>D: Car.Create(...)
     alt invariant broken
@@ -223,7 +223,7 @@ sequenceDiagram
         K-->>C: 400 ProblemDetails (Arabic title)
     else valid
         D-->>H: Car
-        H->>DB: SaveChangesAsync (audit stamp + domain events)
+        H->>DB: SaveChangesAsync (soft delete · audit · outbox rows)
         H-->>K: Result#lt;CarDto#gt;
         K-->>C: 201 Created + CarDto
     end
@@ -234,9 +234,9 @@ sequenceDiagram
 ```mermaid
 flowchart LR
     A(["Request"]) --> B["Forwarded headers"] --> C["Request localization"] --> D["Log context"]
-    D --> E["Exception handler"] --> F["Status code pages"] --> G["HTTPS redirect"]
-    G --> H["Serilog request log"] --> I["CORS"] --> J["Rate limiter<br/><sub>sliding-window policy</sub>"]
-    J --> K["Authentication"] --> L["Authorization"] --> M(["Controllers"])
+    D --> S["Security headers"] --> E["Exception handler"] --> F["Status code pages"] --> G["HTTPS redirect"]
+    G --> H["Serilog request log"] --> I["CORS"] --> K["Authentication"]
+    K --> J["Rate limiter<br/><sub>default: per user or IP</sub>"] --> L["Authorization"] --> M(["Controllers"])
 
     style A fill:#0F172A,stroke:#94A3B8,color:#F8FAFC
     style M fill:#7C3AED,stroke:#C4B5FD,color:#fff
@@ -246,7 +246,7 @@ flowchart LR
 ```
 
 > [!TIP]
-> A controller action does three things: build the command, `await sender.Send(...)`,
+> A controller action does three things: build the command, `await this.sender.Send(...)`,
 > `return result.Match(ok, this.Problem)`. Anything more belongs in a handler or a behaviour.
 
 <img src="assets/divider.svg" alt="" width="100%"/>
@@ -254,6 +254,7 @@ flowchart LR
 ## 4 · Result pattern & errors
 
 ```csharp
+// simplified from src/Taxi.Domain/Cars/Car.cs
 public static Result<Car> Create(Guid id, string make, string model, int year, string descriptionEn, string descriptionAr)
 {
     if (year < 1886)
@@ -269,7 +270,7 @@ public static Result<Car> Create(Guid id, string make, string model, int year, s
 
 ```mermaid
 flowchart LR
-    R{{"Result#lt;T#gt;"}} -->|IsSuccess| OK["✅ 200 / 201 / 204"]
+    R{{"Result#lt;T#gt;"}} -->|IsSuccess| OK["✅ 200 / 201 / 202 / 204"]
     R -->|IsError| E(("Error.Type"))
     E -->|Validation| S400["400 Bad Request"]
     E -->|Unauthorized| S401["401 Unauthorized"]
@@ -305,6 +306,7 @@ flowchart LR
   "title": "Car not found",
   "status": 404,
   "instance": "GET /api/v1/cars/3f2a…",
+  "traceId": "00-…",
   "requestId": "0HN7…:00000001"
 }
 ```
@@ -318,6 +320,7 @@ flowchart LR
   "title": "السيارة غير موجودة",
   "status": 404,
   "instance": "GET /api/v1/cars/3f2a…",
+  "traceId": "00-…",
   "requestId": "0HN7…:00000001"
 }
 ```
@@ -351,7 +354,7 @@ sequenceDiagram
     Note over U,DB: Sign in
     U->>A: POST /api/token/generate { email, password }
     A->>S: GenerateTokenCommand
-    S->>DB: check user, password, roles
+    S->>DB: check user, password, lockout, roles
     S->>T: issue tokens
     T->>DB: replace refresh token (one live per user)
     T-->>U: accessToken (60 min) + refreshToken (7 days)
@@ -377,8 +380,10 @@ stateDiagram-v2
     Rotated --> Active: new token issued
     Active --> Expired: 7 days pass
     Active --> Replaced: user signs in again
+    Active --> Revoked: logout / password change or reset
     Expired --> [*]
     Replaced --> [*]
+    Revoked --> [*]
 ```
 
 | 🔑 Piece | How it works |
@@ -386,8 +391,10 @@ stateDiagram-v2
 | **Access token** | JWT, HMAC-SHA256, lifetime from `JwtSettings:TokenExpirationInMinutes` (60 by default) |
 | **Refresh token** | stored in the database, **one live token per user**, 7-day expiry, rotated on every refresh |
 | **Roles (RBAC)** | `Manager` and `User` roles are written into the JWT as `role` claims; endpoints require named policies (`Policies.*`) mapped to roles in one place |
+| **Brute-force guard** | 5 wrong passwords lock the account for 15 minutes; sign-in and account endpoints share a strict per-IP rate limit; unknown email, wrong password and lockout answer the same 401 |
+| **Account flows** | register, confirm email, resend, forgot / reset / change password, logout; email-taking endpoints answer 202 whether or not the account exists |
 | **Current user** | `IUser` gives handlers the user id; the id never comes from a request body |
-| **Seed** | first run creates the roles; Development also seeds `admin@taxi.com` / `Admin123!` (`Manager`) and `user@taxi.com` / `User123!` (`User`) — other environments only when configured |
+| **Seed** | first run creates the roles; Development also seeds `admin@taxi.com` / `Admin123!` (`Manager`) and `user@taxi.com` / `User123!` (`User`); other environments only when configured |
 
 > [!CAUTION]
 > The development JWT secret and the seeded admin password are public placeholders. Replace
@@ -405,7 +412,7 @@ flowchart TB
 
     subgraph DATA["Bilingual data"]
       direction LR
-      DB[("JSONB column<br/>{ en: …, ar: … }")] --> LT["LocalizedText"] --> DTO["CarDto.Description<br/><sub>one string, in the asked language</sub>"]
+      DB[("JSONB column<br/>{ En: …, Ar: … }")] --> LT["LocalizedText"] --> DTO["CarDto.Description<br/><sub>one string, in the asked language</sub>"]
     end
 
     subgraph MSG["Bilingual messages"]
@@ -431,7 +438,8 @@ flowchart TB
 
 > [!NOTE]
 > There is no English prose in the failure path. Every message is a `LocalizationKeys` constant
-> that must exist in **both** `SharedResource.en.json` and `SharedResource.ar.json`.
+> that must exist in **both** `SharedResource.en.json` and `SharedResource.ar.json`. Today that is
+> 87 keys in each file; account emails are translated the same way.
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 
@@ -439,11 +447,11 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    Q["GetCarsQuery<br/><sub>implements ICachedQuery</sub>"] --> CB{"CachingBehavior<br/>key: cars_ar"}
+    Q["GetCarsQuery<br/><sub>implements ICachedQuery</sub>"] --> CB{"CachingBehavior<br/>key: cars-p1-…_ar"}
     CB -->|hit| RET["⚡ return cached Result"]
-    CB -->|miss| HD["Handler → PostgreSQL"] --> ST["store if success<br/><sub>tagged: cars</sub>"] --> RET2["return Result"]
+    CB -->|miss| HD["Handler → PostgreSQL"] --> ST["store if success<br/><sub>tagged: car</sub>"] --> RET2["return Result"]
 
-    CMD["Create / Update / RemoveCar"] -.->|RemoveByTagAsync cars| CB
+    CMD["Create / Update / Remove car<br/>Upload / Remove image"] -.->|RemoveByTagAsync| CB
 
     style RET fill:#064E3B,stroke:#34D399,color:#fff
     style CB fill:#0C4A6E,stroke:#38BDF8,color:#fff
@@ -451,11 +459,13 @@ flowchart LR
 ```
 
 - **Opt-in per query** with `ICachedQuery<T>`: `CacheKey`, `Tags`, `Expiration`, `IsCultureAware`.
-- **Split by language**: culture-aware keys become `{CacheKey}_{language}`, so Arabic and English never mix.
+- **Split by language**: culture-aware keys become `{CacheKey}_{language}`, so Arabic and English
+  never mix. The v2 car reads hold both languages and share one entry.
 - **Only successes are cached.** Validation runs first, so bad input never reaches the cache.
 - **Invalidation by tag**: every command that changes cached data calls `RemoveByTagAsync`.
 - **HybridCache defaults**: 10-minute expiration, 30-second in-memory window, Redis L2 when
-  `ConnectionStrings:Redis` is set (compose does).
+  `ConnectionStrings:Redis` is set (compose does). Without a backplane another instance can lag by
+  up to the 30-second window.
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 
@@ -465,16 +475,35 @@ flowchart LR
 erDiagram
     AspNetUsers ||--o| RefreshTokens : "has one live"
     AspNetUsers }o--o{ AspNetRoles : "AspNetUserRoles"
+    Drivers }o--o| Cars : "AssignedCarId (by id)"
+    Drivers ||--o{ DriverCertifications : "owns"
     Cars {
         uuid Id PK
         string Make
         string Model
         int Year
         jsonb Description "LocalizedText { En, Ar }"
+        string ImageKey
+        bool IsDeleted "soft delete"
+        timestamptz DeletedAtUtc
+        string DeletedBy
         timestamptz CreatedAtUtc
         string CreatedBy
         timestamptz LastModifiedUtc
         string LastModifiedBy
+    }
+    Drivers {
+        uuid Id PK
+        string FullName
+        string LicenseNumber "unique"
+        uuid AssignedCarId FK "unique when not null"
+    }
+    DriverCertifications {
+        uuid Id PK
+        uuid DriverId FK
+        string NameEn
+        string NameAr
+        date ExpiresOn
     }
     RefreshTokens {
         uuid Id PK
@@ -482,24 +511,33 @@ erDiagram
         string UserId FK
         timestamptz ExpiresOnUtc
     }
+    OutboxMessages {
+        uuid Id PK
+        string Type
+        jsonb Content
+        timestamptz OccurredOnUtc
+        timestamptz ProcessedOnUtc
+        int Attempts
+    }
     AspNetUsers {
         string Id PK
         string Email
     }
     AspNetRoles {
         string Id PK
-        string Name "Manager"
+        string Name "Manager, User"
     }
 ```
 
 | ⚙️ Mechanism | What it does |
 |:--|:--|
 | `AppDbContext : IdentityDbContext<AppUser>` | Identity and business tables share one context and one transaction |
-| `SoftDeleteInterceptor` | turns `Remove()` of an `ISoftDeletable` into an update of `IsDeleted`, `DeletedAtUtc`, `DeletedBy`; a query filter hides deleted rows |
+| `SoftDeleteInterceptor` | turns `Remove()` of an `ISoftDeletable` (`Car`) into an update of `IsDeleted`, `DeletedAtUtc`, `DeletedBy`; a query filter hides deleted rows |
 | `AuditableEntityInterceptor` | stamps `CreatedAtUtc`, `CreatedBy`, `LastModifiedUtc`, `LastModifiedBy` from `IUser` |
 | `OutboxInterceptor` + `OutboxBackgroundService` | domain events saved in the same transaction, published in the background with retries (at-least-once) |
-| `OwnsOne(...).ToJson()` | stores `LocalizedText` as one JSONB column |
-| Startup migrations | applied with 5 retries in non-Production; switch with `Database:ApplyMigrationsOnStartup` |
+| `xmin` concurrency token | `Car` and `Driver`: a lost update race answers a localized 409 instead of silently overwriting |
+| `OwnsOne(...).ToJson()` | stores `LocalizedText` as one JSONB column; inside an owned collection it is two flat columns instead |
+| Startup migrations | applied with 5 retries; on by default outside Production (and in the shipped production compose); switch with `Database:ApplyMigrationsOnStartup` |
 | Npgsql resilience | retry on failure ×5, 60-second command timeout |
 
 <img src="assets/divider.svg" alt="" width="100%"/>
@@ -512,37 +550,44 @@ flowchart LR
       direction LR
       API["🌐 Taxi.Api<br/><b>:5001</b>"]
       PG[("🐘 PostgreSQL 16<br/><b>:5433</b>")]
+      RD[("🧠 Redis 7<br/><b>:6379</b>")]
       SEQ["📜 Seq<br/><b>:8081</b> UI · :5341 ingest"]
+      MP["📬 Mailpit<br/><b>:8025</b> UI · :1025 SMTP"]
       PR["📈 Prometheus<br/><b>:9090</b>"]
       GR["📊 Grafana<br/><b>:3000</b>"]
     end
 
     API -->|EF Core| PG
+    API -->|cache + locks| RD
     API -->|Serilog logs| SEQ
     API -->|OTLP traces| SEQ
+    API -->|account emails| MP
     PR -->|scrapes /metrics| API
     GR -->|queries| PR
 
     style API fill:#4C1D95,stroke:#C4B5FD,color:#fff
     style PG fill:#1E3A8A,stroke:#60A5FA,color:#fff
+    style RD fill:#7F1D1D,stroke:#F87171,color:#fff
     style SEQ fill:#134E4A,stroke:#2DD4BF,color:#fff
+    style MP fill:#312E81,stroke:#818CF8,color:#fff
     style PR fill:#7C2D12,stroke:#FB923C,color:#fff
     style GR fill:#78350F,stroke:#FBBF24,color:#fff
 ```
 
 | Signal | Source | Destination |
 |:--|:--|:--|
-| 📜 **Logs** | Serilog, with request log context | Console · rolling file · Seq |
+| 📜 **Logs** | Serilog, with request log context | Console · rolling file · Seq (Development) |
 | 🧵 **Traces** | OpenTelemetry: ASP.NET Core + HttpClient | Seq over OTLP |
-| 📈 **Metrics** | OpenTelemetry: ASP.NET Core + HttpClient | `/metrics` → Prometheus → Grafana |
+| 📈 **Metrics** | OpenTelemetry: ASP.NET Core + HttpClient | `/metrics` → Prometheus → Grafana (add the data source) |
+| ❤️ **Health** | `/health/live`, `/health/ready` | orchestrator probes; the image `HEALTHCHECK` uses `live` |
 | 🐢 **Slow requests** | `PerformanceBehaviour` | warning log above 500 ms |
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 
 ## 10 · Feature workflow
 
-Every new feature follows the same 17 steps, each one copying a real `Car` file. The full table
-is in [AGENTS.md §3](../AGENTS.md).
+Every new feature follows the same 17 steps, each one copying a real `Car` file. The full table is
+in [AGENTS.md §3](../AGENTS.md).
 
 ```mermaid
 flowchart LR
@@ -564,7 +609,7 @@ flowchart LR
     end
     subgraph S5["🌐 Api + checks"]
       direction TB
-      e1["15 · Controller"] --> e2["16 · Domain tests"] --> e3["17 · requests.http"]
+      e1["15 · Controller"] --> e2["16 · Tests"] --> e3["17 · requests.http"]
     end
     S1 --> S2 --> S3 --> S4 --> S5
 ```
@@ -574,14 +619,21 @@ flowchart LR
 ```text
 src/Taxi.Application/Features/Cars/
 ├── Commands/
-│   ├── CreateCar/   CreateCarCommand · CreateCarCommandHandler · CreateCarCommandValidator
-│   ├── UpdateCar/   UpdateCarCommand · UpdateCarCommandHandler · UpdateCarCommandValidator
-│   └── RemoveCar/   RemoveCarCommand · RemoveCarCommandHandler
+│   ├── CreateCar/        CreateCarCommand · CreateCarCommandHandler · CreateCarCommandValidator
+│   ├── UpdateCar/        UpdateCarCommand · UpdateCarCommandHandler · UpdateCarCommandValidator
+│   ├── RemoveCar/        RemoveCarCommand · RemoveCarCommandHandler
+│   ├── UploadCarImage/   command · handler · validator
+│   └── RemoveCarImage/   command · handler
 ├── Queries/
-│   ├── GetCarById/  GetCarByIdQuery · GetCarByIdQueryHandler · GetCarByIdQueryValidator
-│   └── GetCars/     GetCarsQuery · GetCarsQueryHandler
-├── Dtos/            CarDto
-└── Mappers/         CarMapper
+│   ├── GetCarById/       GetCarByIdQuery · GetCarByIdQueryHandler · GetCarByIdQueryValidator
+│   ├── GetCars/          GetCarsQuery · GetCarsQueryHandler · GetCarsQueryValidator
+│   ├── GetCarDetails/    v2 list
+│   ├── GetCarDetailsById/  v2 single car
+│   ├── GetCarImage/      image stream
+│   └── CarQueryExtensions.cs  shared filter + sort
+├── Dtos/                 CarDto · CarDetailsDto · LocalizedTextDto
+├── Mappers/              CarMapper
+└── EventHandlers/        CarCreatedDomainEventHandler
 ```
 
 ### Prompt templates for AI agents
@@ -600,21 +652,27 @@ src/Taxi.Application/Features/Cars/
 
 ```mermaid
 flowchart LR
-    P(["git push / PR"]) --> R["dotnet restore"] --> B["dotnet build -c Release<br/><sub>StyleCop analyzers</sub>"] --> T["dotnet test"] --> G(["✅ green"])
+    P(["git push / PR"]) --> R["dotnet restore"] --> B["dotnet build -c Release<br/><sub>StyleCop · -warnaserror</sub>"] --> V["vulnerable-package gate"] --> T["dotnet test<br/><sub>+ coverage</sub>"] --> G(["✅ green"])
+    P --> DI["docker build<br/><sub>API image</sub>"] --> G
+    P --> ML["markdownlint<br/><sub>docs</sub>"] --> G
     style P fill:#1E293B,stroke:#94A3B8,color:#fff
     style B fill:#4C1D95,stroke:#C4B5FD,color:#fff
+    style V fill:#7C2D12,stroke:#FB923C,color:#fff
     style T fill:#134E4A,stroke:#2DD4BF,color:#fff
     style G fill:#064E3B,stroke:#34D399,color:#fff
 ```
 
 | Suite | Locks down |
 |:--|:--|
-| 🧪 `Taxi.Domain.UnitTests` | every `Car` and `RefreshToken` factory guard, `Result<T>` conversions |
-| 🧪 `Taxi.Application.UnitTests` | MediatR pipeline order, `Result<T>` cache serialization round trip |
+| 🧪 `Taxi.Domain.UnitTests` | every entity factory and guard (`Car`, `Driver`, `RefreshToken`), `Result<T>` conversions |
+| 🧪 `Taxi.Application.UnitTests` | handlers, validators, mappers, MediatR pipeline order, cache behaviour, `Result<T>` cache serialization round trip |
+| 🧪 `Taxi.ArchitectureTests` | the layer arrows and the mechanical conventions of AGENTS.md §2 |
+| 🧪 `Taxi.Api.IntegrationTests` | the HTTP contract against real PostgreSQL (Testcontainers): auth, RBAC, localization, caching, soft delete, concurrency, idempotency, outbox, uploads, rate limiting, versioning, health |
 
 - **Central package management**: every version lives in `Directory.Packages.props`.
 - **Shared build settings**: `net10.0`, nullable, implicit usings, StyleCop in `Directory.Build.props`.
-- **Security check**: `dotnet list package --vulnerable --include-transitive`.
+- **Security check**: `dotnet list package --vulnerable --include-transitive` (a CI gate).
+- **Dependabot**: grouped weekly updates for NuGet, GitHub Actions and the Docker base images.
 
 <img src="assets/divider.svg" alt="" width="100%"/>
 
@@ -628,25 +686,29 @@ mindmap
       CQRS with MediatR
       Vertical slices
       Result pattern
+      Architecture tests
     Security
       JWT bearer
       Rotating refresh tokens
-      Role claims
-      Rate limit policy
-      Forwarded headers
+      Role policies
+      Account lockout
+      Rate limit policies
+      Security headers
     Data
       PostgreSQL 16
       EF Core 10
       JSONB LocalizedText
-      Audit interceptor
-      Domain events
+      Soft delete and xmin
+      Transactional outbox
     API
-      Versioning v1
+      Versioning v1 and v2
       ProblemDetails
+      Idempotency keys
       OpenAPI
       Swagger UI and Scalar
     Operations
       Docker Compose
+      Redis cache and locks
       Serilog and Seq
       OpenTelemetry
       Prometheus and Grafana

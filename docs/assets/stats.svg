@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="150" viewBox="0 0 1200 150" role="img" aria-labelledby="t">
-  <title id="t">Template at a glance: 6 projects, 5 pipeline stages, 2 languages, 17-step feature recipe, 5 containers, 7 error kinds</title>
+  <title id="t">Template at a glance: 5 source projects, 5 pipeline stages, 2 languages, 17-step feature recipe, 7 Docker services, 7 error kinds</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#0B1020"/>
@@ -14,8 +14,8 @@
   <rect width="1200" height="150" rx="20" fill="url(#bg)"/>
   <g transform="translate(0 0)">
     <rect x="16" y="18" width="178" height="114" rx="14" fill="#0F172A" stroke="#7C3AED" stroke-opacity=".7"/>
-    <text x="105" y="76" class="n" fill="#C4B5FD">6</text>
-    <text x="105" y="108" class="l">PROJECTS</text>
+    <text x="105" y="76" class="n" fill="#C4B5FD">5</text>
+    <text x="105" y="108" class="l">SOURCE PROJECTS</text>
 
     <rect x="212" y="18" width="178" height="114" rx="14" fill="#0F172A" stroke="#F43F5E" stroke-opacity=".7"/>
     <text x="301" y="76" class="n" fill="#FDA4AF">5</text>
@@ -30,7 +30,7 @@
     <text x="693" y="108" class="l">STEP FEATURE RECIPE</text>
 
     <rect x="800" y="18" width="178" height="114" rx="14" fill="#0F172A" stroke="#38BDF8" stroke-opacity=".7"/>
-    <text x="889" y="76" class="n" fill="#7DD3FC">5</text>
+    <text x="889" y="76" class="n" fill="#7DD3FC">7</text>
     <text x="889" y="108" class="l">DOCKER SERVICES</text>
 
     <rect x="996" y="18" width="188" height="114" rx="14" fill="#0F172A" stroke="#34D399" stroke-opacity=".7"/>

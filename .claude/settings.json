@@ -1,0 +1,61 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet format *)",
+      "Bash(dotnet list *)",
+      "Bash(dotnet ef migrations add *)",
+      "Bash(dotnet ef migrations list *)",
+      "Bash(pwsh -NoProfile -File ./tool/*)",
+      "Bash(pwsh ./tool/*)",
+      "Bash(npx markdownlint-cli2*)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose config *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(dotnet ef database update *)",
+      "Bash(pwsh ./rename.ps1 *)"
+    ],
+    "deny": [
+      "Read(**/bin/**)",
+      "Read(**/obj/**)",
+      "Read(**/Data/Migrations/*.Designer.cs)",
+      "Read(**/AppDbContextModelSnapshot.cs)",
+      "Read(**/coverage/**)",
+      "Read(**/.env)",
+      "Edit(**/Data/Migrations/*.Designer.cs)",
+      "Edit(**/AppDbContextModelSnapshot.cs)",
+      "Edit(**/bin/**)",
+      "Edit(**/obj/**)",
+      "Bash(docker compose down -v*)",
+      "Bash(docker volume rm *)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(dotnet build *)",
+            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR/tool/claude-dotnet-filter.ps1\""
+          },
+          {
+            "type": "command",
+            "if": "Bash(dotnet test *)",
+            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR/tool/claude-dotnet-filter.ps1\""
+          }
+        ]
+      }
+    ]
+  }
+}
