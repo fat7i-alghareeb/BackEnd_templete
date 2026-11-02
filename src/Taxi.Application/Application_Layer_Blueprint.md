@@ -418,6 +418,7 @@ public static class CarMapper
 | `IAppDbContext` | `AppDbContext` (Infrastructure) | `DbSet<Car>`, `DbSet<RefreshToken>`, `SaveChangesAsync` |
 | `IIdentityService` | `IdentityService` | Role checks, policy checks, authenticate, fetch user — wraps `UserManager<AppUser>` so Identity types never reach a handler |
 | `ITokenProvider` | `TokenProvider` | Issue a JWT + refresh token, read a principal from an expired token |
+| `IEmailSender` | `LoggingEmailSender` / `SmtpEmailSender` | Send an `EmailMessage`; the implementation is picked by `Email:Provider` |
 | `IUser` | `CurrentUser` (**API layer**) | The current user id from the JWT |
 | `ILanguageContext` | `LanguageContext` (**API layer**) | The language resolved from `Accept-Language` |
 

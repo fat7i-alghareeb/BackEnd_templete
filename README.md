@@ -140,6 +140,7 @@ dotnet user-secrets set "JwtSettings:Secret" "<at least 32 characters>" --projec
 | `Database:ApplyMigrationsOnStartup` | `true` outside Production | apply migrations and seed on startup, with 5 retries |
 | `Database:ResetOnStartup` | `false` | drop and recreate the database (Development only) |
 | `Kestrel:Limits:MaxRequestBodySize` | `1048576` | request body cap in bytes; larger bodies get 413 |
+| `Email:Provider` | `Log` | `Log` writes emails to the log; `Smtp` sends via `Email:Smtp:*` (compose dev uses Mailpit at `:8025`) |
 | `ConnectionStrings:Redis` | *(blank)* | HybridCache L2; blank = in-process cache only (single instance) |
 | `JwtSettings:Secret` | *(blank)* | HMAC key; the host refuses to start unless it is at least 32 characters |
 | `JwtSettings:TokenExpirationInMinutes` | `60` | access token lifetime (1–1440) |

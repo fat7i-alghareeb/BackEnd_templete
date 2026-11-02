@@ -16,6 +16,7 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
 		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+		<PackageReference Include="MailKit" />
 		<PackageReference Include="Serilog.AspNetCore" />
         <PackageReference Include="Serilog.Sinks.Seq" />
 	</ItemGroup>

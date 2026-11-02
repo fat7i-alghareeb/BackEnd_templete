@@ -380,6 +380,11 @@ In order:
     the 30-second L1 window from `CacheDefaults.LocalExpiration`. HybridCache picks up the
     registered `IDistributedCache` as its L2 automatically. Compose sets `redis:6379`; plain
     `dotnet run` leaves it blank and caches in-process.
+11. `AddAppEmail` — binds `EmailSettings` (section `Email`, validated on start) and registers
+    `IEmailSender`: `LoggingEmailSender` when `Email:Provider` is `Log` (the default — the message,
+    including any one-time link, is written to the log), `SmtpEmailSender` (MailKit) when it is
+    `Smtp`, which then requires `Email:Smtp:Host`. Development compose points it at the Mailpit
+    container (inbox at `http://localhost:8025`); production compose reads `SMTP_*` from `.env`.
 
 Note the lifetimes: the interceptor and `DbContext` are **scoped**; the identity services are
 **transient** but depend on scoped `UserManager` / `IAppDbContext`, which is safe (transient

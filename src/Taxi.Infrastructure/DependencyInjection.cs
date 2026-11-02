@@ -14,6 +14,7 @@ using Taxi.Application.Common.Caching;
 using Taxi.Application.Common.Interfaces;
 using Taxi.Infrastructure.Data;
 using Taxi.Infrastructure.Data.Interceptors;
+using Taxi.Infrastructure.Email;
 using Taxi.Infrastructure.HealthChecks;
 using Taxi.Infrastructure.Identity;
 using Taxi.Infrastructure.Settings;
@@ -115,6 +116,8 @@ public static class DependencyInjection
 
         services.AddAppHealthChecks(configuration);
 
+        services.AddAppEmail(configuration);
+
         return services;
     }
 
@@ -176,6 +179,32 @@ public static class DependencyInjection
                 registration.Timeout = TimeSpan.FromSeconds(5);
             }
         });
+
+        return services;
+    }
+
+    /// <summary>
+    /// <see cref="IEmailSender"/> chosen by <c>Email:Provider</c>: <c>Log</c> (default) writes the
+    /// message to the log; <c>Smtp</c> sends through <c>Email:Smtp</c> with MailKit.
+    /// </summary>
+    /// <returns>The service collection, for chaining.</returns>
+    public static IServiceCollection AddAppEmail(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<EmailSettings>()
+            .Bind(configuration.GetSection(EmailSettings.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        var provider = configuration[$"{EmailSettings.SectionName}:Provider"];
+
+        if (string.Equals(provider, EmailProviders.Smtp, StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddTransient<IEmailSender, SmtpEmailSender>();
+        }
+        else
+        {
+            services.AddTransient<IEmailSender, LoggingEmailSender>();
+        }
 
         return services;
     }
