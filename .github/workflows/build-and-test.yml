@@ -62,3 +62,14 @@ jobs:
         path: |
           coverage/report
           coverage/**/*.trx
+
+  # The API image must keep building: restore, publish, non-root runtime, HEALTHCHECK.
+  docker-image:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build the API image
+      run: docker build --file src/Taxi.Api/Dockerfile --tag taxi-api:ci .

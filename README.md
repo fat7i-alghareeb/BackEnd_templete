@@ -256,8 +256,10 @@ language the client asks for.
 
 | Service | Port | Role |
 |:--|:--|:--|
-| 🌐 Taxi.Api | `5001` | the API (when run through Compose) |
+| 🌐 Taxi.Api | `5001` → container `8080` | the API (when run through Compose); image `HEALTHCHECK` on `/health/live` |
 | 🐘 PostgreSQL 16 | `5433` | database |
+| 🧠 Redis 7 | `6379` | HybridCache L2 + distributed locks |
+| 📬 Mailpit (dev only) | `8025` (UI) · `1025` (SMTP) | catches account emails |
 | 📜 Seq | `8081` (UI) · `5341` (ingest) | logs and traces |
 | 📈 Prometheus | `9090` | scrapes `/metrics` |
 | 📊 Grafana | `3000` | dashboards over Prometheus |

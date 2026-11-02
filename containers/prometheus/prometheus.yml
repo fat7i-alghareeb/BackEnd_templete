@@ -6,7 +6,8 @@ scrape_configs:
   - job_name: 'taxi-api'
     metrics_path: /metrics
     static_configs:
-      - targets: ['taxi.api:80']
+      # The image listens on 8080 (ASPNETCORE_HTTP_PORTS default) in every environment.
+      - targets: ['taxi.api:8080']
   
   - job_name: 'prometheus'
     static_configs:

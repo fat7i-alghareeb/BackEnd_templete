@@ -1,4 +1,6 @@
 services:
+  # Listens on 8080 inside the container. The image's HEALTHCHECK probes /health/live;
+  # `docker compose ps` shows the result.
   taxi.api:
     build:
       context: .
@@ -41,7 +43,8 @@ services:
     volumes:
       - ./containers/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
-      - taxi.api
+      taxi.api:
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana:latest
