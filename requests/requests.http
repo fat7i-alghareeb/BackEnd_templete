@@ -60,8 +60,9 @@ Authorization: Bearer {{token}}
 ### ---------------------------------------------------------------------------
 ### 2. Cars — the reference feature
 
-### 2a. List all cars (cached: GetCarsQuery, tag "car", 10 min, culture-aware)
-GET {{baseUrl}}/api/v1/cars
+### 2a. List cars, paged (cached per page: GetCarsQuery, tag "car", 10 min, culture-aware)
+### Response: { items, page, pageSize, totalCount, totalPages, hasPreviousPage, hasNextPage }
+GET {{baseUrl}}/api/v1/cars?page=1&pageSize=20
 Authorization: Bearer {{token}}
 Accept-Language: {{lang}}
 
@@ -136,6 +137,11 @@ Content-Type: application/json
 ### 3b. Unknown id → 404, title from LocalizationKeys.Car.NotFound
 GET {{baseUrl}}/api/v1/cars/00000000-0000-0000-0000-000000000001
 Authorization: Bearer {{token}}
+
+### 3b-2. Invalid page → 400 keyed by "Page" (pageSize above 100 is clamped, not rejected)
+GET {{baseUrl}}/api/v1/cars?page=0
+Authorization: Bearer {{token}}
+Accept-Language: {{lang}}
 
 ### 3c. Invalid year → 400 ValidationProblemDetails keyed by "Year"
 POST {{baseUrl}}/api/v1/cars

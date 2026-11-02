@@ -2,6 +2,7 @@ using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Taxi.Application.Common.Models;
 using Taxi.Application.Common.Security;
 using Taxi.Application.Features.Cars.Commands.CreateCar;
 using Taxi.Application.Features.Cars.Commands.RemoveCar;
@@ -19,12 +20,13 @@ namespace Taxi.Api.Controllers;
 public sealed class CarsController(ISender sender) : ApiController
 {
     [HttpGet]
-    [ProducesResponseType(typeof(List<CarDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedList<CarDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [EndpointName("GetCars")]
     [MapToApiVersion("1.0")]
-    public async Task<IActionResult> GetCars(CancellationToken ct)
+    public async Task<IActionResult> GetCars([FromQuery] GetCarsRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(new GetCarsQuery(), ct);
+        var result = await sender.Send(new GetCarsQuery(request.Page, request.PageSize), ct);
         return result.Match(this.Ok, this.Problem);
     }
 

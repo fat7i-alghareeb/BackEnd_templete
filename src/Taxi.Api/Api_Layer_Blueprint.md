@@ -124,12 +124,12 @@ validation, `[FromBody]` inference). No localizer plumbing, no per-controller tr
 public sealed class CarsController(ISender sender) : ApiController
 {
     [HttpGet]
-    [ProducesResponseType(typeof(List<CarDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedList<CarDto>), StatusCodes.Status200OK)]
     [EndpointName("GetCars")]
     [MapToApiVersion("1.0")]
-    public async Task<IActionResult> GetCars(CancellationToken ct)
+    public async Task<IActionResult> GetCars([FromQuery] GetCarsRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(new GetCarsQuery(), ct);
+        var result = await sender.Send(new GetCarsQuery(request.Page, request.PageSize), ct);
         return result.Match(this.Ok, this.Problem);
     }
 

@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using Taxi.Application.Common.Models;
 using Taxi.Application.Features.Cars.Dtos;
 using Taxi.Domain.Common.Results;
 
@@ -49,6 +50,32 @@ public class ResultSerializationTests
         Assert.True(restored.IsSuccess);
         Assert.Equal(2, restored.Value.Count);
         Assert.Equal("Toyota", restored.Value[0].Make);
+    }
+
+    [Fact]
+    public void SuccessResult_OfAPaginatedList_SurvivesAJsonRoundTrip()
+    {
+        // GetCarsQuery caches Result<PaginatedList<CarDto>>: the [JsonConstructor] must rehydrate
+        // the items and the paging metadata, and the derived properties must follow.
+        Result<PaginatedList<CarDto>> original = new PaginatedList<CarDto>(
+            [new(Guid.NewGuid(), "Toyota", "Camry", 2024, "A reliable sedan.")],
+            page: 2,
+            pageSize: 1,
+            totalCount: 3);
+
+        var json = JsonSerializer.Serialize(original, Options);
+        var restored = JsonSerializer.Deserialize<Result<PaginatedList<CarDto>>>(json, Options);
+
+        Assert.NotNull(restored);
+        Assert.True(restored.IsSuccess);
+        Assert.Single(restored.Value.Items);
+        Assert.Equal("Toyota", restored.Value.Items[0].Make);
+        Assert.Equal(2, restored.Value.Page);
+        Assert.Equal(1, restored.Value.PageSize);
+        Assert.Equal(3, restored.Value.TotalCount);
+        Assert.Equal(3, restored.Value.TotalPages);
+        Assert.True(restored.Value.HasPreviousPage);
+        Assert.True(restored.Value.HasNextPage);
     }
 
     [Fact]

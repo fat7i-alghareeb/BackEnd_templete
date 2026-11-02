@@ -29,7 +29,7 @@ This file covers an ordinary feature end to end. Open a blueprint when you hit o
 | touching **middleware order** or OpenAPI | [Api §6, §8](src/Taxi.Api/Api_Layer_Blueprint.md) |
 | touching **tracing, metrics or log sinks** | [Api §10 Observability](src/Taxi.Api/Api_Layer_Blueprint.md) |
 | touching **auth, JWT, seeding, migrations** | [Infrastructure §7, §8](src/Taxi.Infrastructure/Infrastructure_Layer_Blueprint.md) |
-| adding **pagination** | [Contracts Future Extensions](src/Taxi.Contracts/Contracts_Layer_Blueprint.md) — nothing paginates yet; the envelope shape is specified there |
+| adding **pagination** to a list | [Contracts §10a Paging](src/Taxi.Contracts/Contracts_Layer_Blueprint.md) — copy `GetCarsRequest` / `GetCarsQuery`; return `PaginatedList<T>` |
 | touching the **Blazor client** | [Client blueprint](src/Taxi.Client/Client_Layer_Blueprint.md) — it is a scaffold, not a working app |
 | seeing behaviour you cannot explain | that layer's blueprint — deliberate design decisions are documented there before you assume a bug |
 

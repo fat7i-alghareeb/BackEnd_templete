@@ -63,6 +63,12 @@ src/Taxi.Application/
 │   │   ├── ILanguageContext.cs
 │   │   ├── ITokenProvider.cs
 │   │   └── IUser.cs
+│   ├── Models/
+│   │   ├── PaginatedList.cs         paging envelope returned by list queries
+│   │   └── Paging.cs                default / max page size
+│   ├── Security/
+│   │   ├── Policies.cs              named authorization policies
+│   │   └── Roles.cs                 role names, seeded on startup
 │   └── UtilityService.cs            static helpers; not an abstraction, so not in Interfaces/
 ├── Features/
 │   ├── Cars/
@@ -74,7 +80,7 @@ src/Taxi.Application/
 │   │   ├── Mappers/CarMapper.cs
 │   │   └── Queries/
 │   │       ├── GetCarById/{GetCarByIdQuery,GetCarByIdQueryHandler,GetCarByIdQueryValidator}.cs
-│   │       └── GetCars/{GetCarsQuery,GetCarsQueryHandler}.cs
+│   │       └── GetCars/{GetCarsQuery,GetCarsQueryHandler,GetCarsQueryValidator}.cs
 │   └── Identity/
 │       ├── Commands/
 │       │   ├── GenerateToken/{GenerateTokenCommand,…Handler,…Validator}.cs

@@ -23,5 +23,7 @@
   "Validation.Model.Required": "Car model is required.",
   "Validation.Year.Invalid": "Car year must be between 1886 and 2026.",
   "Validation.Description.Required": "Car description is required.",
-  "RateLimit.Exceeded": "Too many requests. Please try again later."
+  "RateLimit.Exceeded": "Too many requests. Please try again later.",
+  "Validation.Page.Invalid": "Page must be 1 or greater.",
+  "Validation.PageSize.Invalid": "Page size must be 1 or greater."
 }

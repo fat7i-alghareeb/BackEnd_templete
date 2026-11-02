@@ -254,6 +254,40 @@ English `Error.Description`.
 
 ---
 
+## 10a. Paging and list queries
+
+`GET /api/v1/cars` is paged. The pieces, and where each lives:
+
+| Piece | Where |
+|---|---|
+| Query-string contract | `Requests/Cars/GetCarsRequest.cs`, bound with `[FromQuery]` — `page`, `pageSize` |
+| Limits | `Taxi.Application/Common/Models/Paging.cs` — default 20, **max 100 (clamped, not rejected)** |
+| Envelope | `Taxi.Application/Common/Models/PaginatedList<T>` — returned as the response body |
+| Validation keys | `LocalizationKeys.Validation.PageInvalid` / `PageSizeInvalid` (page or size below 1 → 400) |
+
+The response shape:
+
+```json
+{
+  "items": [ ... ],
+  "page": 2,
+  "pageSize": 20,
+  "totalCount": 57,
+  "totalPages": 3,
+  "hasPreviousPage": true,
+  "hasNextPage": true
+}
+```
+
+The envelope is an Application type, consistent with §6: outbound shapes are Application DTOs.
+Never return a bare JSON array from a collection endpoint — adding metadata later is a breaking
+change for every deserializer.
+
+Every paging input is part of the query's `CacheKey`, so each page is cached separately; the
+shared `CacheTags.Cars` tag is what lets one `RemoveByTagAsync` evict them all.
+
+---
+
 ## 11. Future Extensions — NOT IMPLEMENTED
 
 > ⚠️ **None of the following is wired up today.** Sketches only, corrected for this stack.
@@ -273,49 +307,7 @@ types), the change is:
 Weigh it honestly: it buys a client-visible schema and costs a mapping layer. With the client
 currently an empty shell, returning `CarDto` directly is the reasonable status quo.
 
-### 11.2 Paging envelope
-
-Nothing paginates today. When the first paged endpoint arrives you will need three new pieces:
-a `PaginatedList<T>` in `Taxi.Application/Common/Models/`, `PageInvalid` / `PageSizeInvalid`
-constants in `LocalizationKeys.Validation` (with entries in both `SharedResource` files), and the
-envelope below:
-
-```csharp
-// src/Taxi.Contracts/Responses/Common/PagedResponse.cs
-namespace Taxi.Contracts.Responses.Common;
-
-public sealed record PagedResponse<T>(
-    IReadOnlyCollection<T> Items,
-    int PageNumber,
-    int PageSize,
-    int TotalPages,
-    int TotalCount)
-{
-    public bool HasNextPage => this.PageNumber < this.TotalPages;
-
-    public bool HasPreviousPage => this.PageNumber > 1;
-}
-```
-
-Never return a bare JSON array from a collection endpoint — adding metadata later is a breaking
-change for every deserializer.
-
-The query side carries the paging inputs:
-
-```csharp
-public record GetCarsQuery(int Page = 1, int PageSize = 20) : ICachedQuery<Result<PaginatedList<CarDto>>>
-{
-    public string CacheKey => $"cars-p{this.Page}-s{this.PageSize}";
-    public string[] Tags => [CacheTags.Cars];
-    public TimeSpan Expiration => TimeSpan.FromMinutes(10);
-}
-```
-
-with a validator using `LocalizationKeys.Validation.PageInvalid` / `PageSizeInvalid`. Note that
-paging multiplies cache keys — tag-based invalidation still clears them all, which is why
-`Tags` matters more than `CacheKey` here.
-
-### 11.3 Contract versioning
+### 11.2 Contract versioning
 
 The API already versions by URL segment (`api/v{version:apiVersion}/...`) with
 `[MapToApiVersion("1.0")]` per action. If a **breaking** payload change is ever needed, split by

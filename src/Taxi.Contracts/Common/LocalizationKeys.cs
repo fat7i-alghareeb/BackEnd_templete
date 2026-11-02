@@ -45,5 +45,7 @@ public static class LocalizationKeys
         public const string ModelRequired = "Validation.Model.Required";
         public const string YearInvalid = "Validation.Year.Invalid";
         public const string DescriptionRequired = "Validation.Description.Required";
+        public const string PageInvalid = "Validation.Page.Invalid";
+        public const string PageSizeInvalid = "Validation.PageSize.Invalid";
     }
 }

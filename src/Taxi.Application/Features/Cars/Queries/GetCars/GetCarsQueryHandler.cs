@@ -3,21 +3,33 @@ namespace Taxi.Application.Features.Cars.Queries.GetCars;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Taxi.Application.Common.Interfaces;
+using Taxi.Application.Common.Models;
 using Taxi.Application.Features.Cars.Dtos;
 using Taxi.Application.Features.Cars.Mappers;
+using Taxi.Domain.Cars;
 using Taxi.Domain.Common.Results;
 
-public class GetCarsQueryHandler(IAppDbContext context, ILanguageContext languageContext) : IRequestHandler<GetCarsQuery, Result<List<CarDto>>>
+public class GetCarsQueryHandler(IAppDbContext context, ILanguageContext languageContext)
+    : IRequestHandler<GetCarsQuery, Result<PaginatedList<CarDto>>>
 {
     private readonly IAppDbContext context = context;
     private readonly ILanguageContext languageContext = languageContext;
 
-    public async Task<Result<List<CarDto>>> Handle(GetCarsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PaginatedList<CarDto>>> Handle(GetCarsQuery request, CancellationToken cancellationToken)
     {
-        var cars = await this.context.Cars
+        // A deterministic order is mandatory for paging; Id breaks ties between equal timestamps.
+        var query = this.context.Cars
             .AsNoTracking()
-            .ToListAsync(cancellationToken);
+            .OrderByDescending(c => c.CreatedAtUtc)
+            .ThenBy(c => c.Id);
 
-        return cars.ToDto(this.languageContext.Language);
+        var page = await PaginatedList<Car>.CreateAsync(
+            query,
+            request.Page,
+            request.PageSize,
+            cancellationToken);
+
+        // LocalizedText is resolved in memory, after materialisation — see CarMapper.
+        return page.Map(car => car.ToDto(this.languageContext.Language));
     }
 }
