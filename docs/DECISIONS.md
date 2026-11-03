@@ -25,6 +25,8 @@ for known gaps, §12.
 | Mapping to DTOs in memory, manual extension methods | No mapper library; no SQL-side JSONB projection yet | Application blueprint §10 |
 | Password policy is relaxed (6 characters) | Template default; tighten for production | Infrastructure blueprint §10 |
 | `this.` on instance members is a convention only | The StyleCop rule (SA1101) is off; review enforces it | AGENTS.md §2 |
+| `Asp.Versioning` stays on 10.0.0 | 10.2.x makes analyzers AV0016, AV0029 and AV0030 errors: they want `AddApiVersioning().AddOpenApi()` and `MapOpenApi().WithDocumentPerVersion()`, a redesign of the OpenAPI setup. Do it deliberately, not as a version bump | Api blueprint §11 |
+| `Microsoft.OpenApi` stays on 2.x | `Microsoft.AspNetCore.OpenApi` requires `< 3.0`; the transformers use the 2.x API | `Directory.Packages.props` |
 | `AGENTS.md` is a short digest; detail in `docs/AGENT_REFERENCE.md` | `AGENTS.md` is loaded every chat; the rest is read on demand | USING_CLAUDE §2 |
 | Layer rules load by path (`.claude/rules/`) | Day-to-day work needs 30 lines, not a 600-line blueprint | USING_CLAUDE §8 |
 | Features are generated, then edited (`tool/generate-feature.ps1`) | Typing ~25 near-identical files costs more than reviewing them | USING_CLAUDE §6 |

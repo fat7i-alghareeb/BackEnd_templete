@@ -135,7 +135,7 @@ public static class DependencyInjection
 
     public static IServiceCollection AddAppLocalization(this IServiceCollection services)
     {
-        services.AddJsonLocalization(options => options.ResourcesPath = "Resources");
+        services.AddJsonLocalization(options => options.ResourcesPath = ["Resources"]);
         services.AddLocalization();
         return services;
     }
