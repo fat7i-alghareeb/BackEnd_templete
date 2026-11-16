@@ -2,7 +2,7 @@
 # Run:    docker compose up (see docker-compose*.yml) — the image listens on 8080 as a non-root user.
 
 # ---- runtime base -----------------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 WORKDIR /app
 EXPOSE 8080
 # Uploaded files (FileStorage:LocalRootPath) live in /app/storage, owned by the non-root app user.
